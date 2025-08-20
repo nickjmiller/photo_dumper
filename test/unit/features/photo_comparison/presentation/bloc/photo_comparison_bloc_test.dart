@@ -179,6 +179,29 @@ void main() {
           isA<TournamentInProgress>(),
         ],
       );
+
+      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
+        'properly resets state when restarting comparison from deletion confirmation',
+        build: () {
+          bloc.add(LoadSelectedPhotos(photos: testPhotos));
+          bloc.add(SelectWinner(winner: testPhotos[0], loser: testPhotos[1]));
+          return bloc;
+        },
+        act: (bloc) => bloc.add(RestartComparison()),
+        expect: () => [
+          isA<PhotoComparisonLoading>(),
+          isA<TournamentInProgress>(),
+          predicate<DeletionConfirmation>((state) {
+            return state.eliminatedPhotos.length == 1;
+          }),
+          predicate<TournamentInProgress>((state) {
+            // Verify that the state is properly reset
+            return state.eliminatedPhotos.isEmpty &&
+                state.remainingPhotos.length == 2 &&
+                state.currentComparison == 1;
+          }),
+        ],
+      );
     });
 
     group('ConfirmDeletion', () {
@@ -212,6 +235,37 @@ void main() {
           predicate<ComparisonComplete>((state) {
             return state.winner.length == 1;
           }),
+        ],
+      );
+    });
+
+    group('CancelComparison', () {
+      final testPhotos = [
+        Photo(
+          id: '1',
+          name: 'photo1.jpg',
+          createdAt: DateTime.now(),
+          file: File('test/path/photo1.jpg'),
+        ),
+        Photo(
+          id: '2',
+          name: 'photo2.jpg',
+          createdAt: DateTime.now(),
+          file: File('test/path/photo2.jpg'),
+        ),
+      ];
+
+      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
+        'emits PhotoComparisonInitial when canceling comparison',
+        build: () {
+          bloc.add(LoadSelectedPhotos(photos: testPhotos));
+          return bloc;
+        },
+        act: (bloc) => bloc.add(CancelComparison()),
+        expect: () => [
+          isA<PhotoComparisonLoading>(),
+          isA<TournamentInProgress>(),
+          isA<PhotoComparisonInitial>(),
         ],
       );
     });

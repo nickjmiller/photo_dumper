@@ -47,6 +47,8 @@ class RestartComparison extends PhotoComparisonEvent {}
 
 class ConfirmDeletion extends PhotoComparisonEvent {}
 
+class CancelComparison extends PhotoComparisonEvent {}
+
 // States
 abstract class PhotoComparisonState extends Equatable {
   const PhotoComparisonState();
@@ -151,6 +153,7 @@ class PhotoComparisonBloc
     on<NextPair>(_onNextPair);
     on<RestartComparison>(_onRestartComparison);
     on<ConfirmDeletion>(_onConfirmDeletion);
+    on<CancelComparison>(_onCancelComparison);
   }
 
   Future<void> _onLoadSelectedPhotos(
@@ -227,6 +230,21 @@ class PhotoComparisonBloc
     Emitter<PhotoComparisonState> emit,
   ) async {
     emit(ComparisonComplete(winner: _remainingPhotos));
+  }
+
+  void _onCancelComparison(
+    CancelComparison event,
+    Emitter<PhotoComparisonState> emit,
+  ) {
+    // Reset all internal state
+    _allPhotos = [];
+    _remainingPhotos = [];
+    _eliminatedPhotos = [];
+    _currentRoundPairs = [];
+    _currentPairIndex = 0;
+
+    // Emit initial state to clear everything
+    emit(PhotoComparisonInitial());
   }
 
   void _generatePairs() {

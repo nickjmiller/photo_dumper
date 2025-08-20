@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/dependency_injection.dart';
 import '../bloc/photo_comparison_bloc.dart';
+import '../bloc/photo_selection_bloc.dart';
 import '../widgets/photo_card.dart';
 import '../../domain/entities/photo.dart';
+import 'photo_selection_page.dart';
 
 class PhotoComparisonPage extends StatefulWidget {
   final List<Photo> selectedPhotos;
@@ -67,6 +70,15 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
         .animate(
           CurvedAnimation(parent: _photo2Controller, curve: Curves.easeOut),
         );
+  }
+
+  void _resetDragState() {
+    _photo1DragOffset = 0.0;
+    _photo2DragOffset = 0.0;
+    _photo1TotalDrag = 0.0;
+    _photo2TotalDrag = 0.0;
+    _isDraggingPhoto1 = false;
+    _isDraggingPhoto2 = false;
   }
 
   @override
@@ -200,12 +212,35 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
     context.read<PhotoComparisonBloc>().add(ConfirmDeletion());
   }
 
+  void _cancelComparison() {
+    // Clear all photo state from memory
+    context.read<PhotoComparisonBloc>().add(CancelComparison());
+
+    // Navigate back to photo selection page and clear all routes
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => BlocProvider(
+          create: (context) => PhotoSelectionBloc(photoUseCases: getIt()),
+          child: const PhotoSelectionPage(),
+        ),
+      ),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppConstants.photoComparisonTitle),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            onPressed: _cancelComparison,
+            icon: const Icon(Icons.close),
+            tooltip: 'Cancel',
+          ),
+        ],
       ),
       body: BlocListener<PhotoComparisonBloc, PhotoComparisonState>(
         listener: (context, state) {
@@ -233,10 +268,11 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
               final remainingPhotos = state.remainingPhotos;
               final eliminatedPhotos = state.eliminatedPhotos;
 
-              // Reset animations when new photos are loaded
+              // Reset animations and drag state when new photos are loaded
               if (_currentPhoto1 != currentPhoto1 ||
                   _currentPhoto2 != currentPhoto2) {
                 _resetAnimations();
+                _resetDragState();
               }
 
               _currentPhoto1 = currentPhoto1;
