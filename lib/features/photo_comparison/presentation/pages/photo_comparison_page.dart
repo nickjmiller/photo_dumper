@@ -530,7 +530,10 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
           const SizedBox(height: 24),
           FilledButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              // Navigate back to photo selection page
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/', (route) => false);
             },
             child: const Text('Done'),
           ),
