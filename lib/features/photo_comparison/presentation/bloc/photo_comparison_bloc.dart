@@ -11,6 +11,15 @@ abstract class PhotoComparisonEvent extends Equatable {
   List<Object> get props => [];
 }
 
+class InitializeWithPhotos extends PhotoComparisonEvent {
+  final List<Photo> photos;
+
+  const InitializeWithPhotos({required this.photos});
+
+  @override
+  List<Object> get props => [photos];
+}
+
 class LoadPhotos extends PhotoComparisonEvent {}
 
 class KeepPhoto extends PhotoComparisonEvent {
@@ -88,11 +97,19 @@ class PhotoComparisonBloc
 
   PhotoComparisonBloc({required this.photoUseCases})
     : super(PhotoComparisonInitial()) {
+    on<InitializeWithPhotos>(_onInitializeWithPhotos);
     on<LoadPhotos>(_onLoadPhotos);
     on<KeepPhoto>(_onKeepPhoto);
     on<DeletePhoto>(_onDeletePhoto);
     on<KeepBothPhotos>(_onKeepBothPhotos);
     on<DeleteBothPhotos>(_onDeleteBothPhotos);
+  }
+
+  Future<void> _onInitializeWithPhotos(
+    InitializeWithPhotos event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    emit(PhotoComparisonLoaded(photos: event.photos));
   }
 
   Future<void> _onLoadPhotos(

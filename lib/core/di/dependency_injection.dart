@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import '../../features/photo_comparison/data/repositories/photo_repository_impl.dart';
+import '../../features/photo_comparison/data/datasources/photo_library_datasource.dart';
 import '../../features/photo_comparison/domain/repositories/photo_repository.dart';
 import '../../features/photo_comparison/domain/usecases/photo_usecases.dart';
 
@@ -14,9 +15,16 @@ Future<void> setupDependencies() async {
     getIt.unregister<PhotoUseCases>();
   }
 
+  // Data sources
+  getIt.registerLazySingleton<PhotoLibraryDataSource>(
+    () => PhotoLibraryDataSourceImpl(),
+  );
+
   // Repositories
-  getIt.registerLazySingleton<PhotoRepository>(() => PhotoRepositoryImpl());
+  getIt.registerLazySingleton<PhotoRepository>(
+    () => PhotoRepositoryImpl(photoLibraryDataSource: getIt()),
+  );
 
   // Use cases
-  getIt.registerLazySingleton(() => PhotoUseCases(repository: getIt()));
+  getIt.registerLazySingleton(() => PhotoUseCases(getIt()));
 }

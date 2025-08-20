@@ -46,6 +46,12 @@ dependencies:
   
   # Equatable for value equality
   equatable: ^2.0.5
+  
+  # Image picker for photo library access
+  image_picker: ^1.0.7
+  
+  # Permission handler for photo library access
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

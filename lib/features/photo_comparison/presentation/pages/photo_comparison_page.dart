@@ -4,9 +4,12 @@ import '../../../../core/constants/app_constants.dart';
 import '../bloc/photo_comparison_bloc.dart';
 import '../widgets/photo_card.dart';
 import '../widgets/action_buttons.dart';
+import '../../domain/entities/photo.dart';
 
 class PhotoComparisonPage extends StatefulWidget {
-  const PhotoComparisonPage({super.key});
+  final List<Photo> selectedPhotos;
+
+  const PhotoComparisonPage({super.key, required this.selectedPhotos});
 
   @override
   State<PhotoComparisonPage> createState() => _PhotoComparisonPageState();
@@ -30,7 +33,10 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _loadPhotos();
+    // Initialize the bloc with the selected photos directly
+    context.read<PhotoComparisonBloc>().add(
+      InitializeWithPhotos(photos: widget.selectedPhotos),
+    );
   }
 
   void _initializeAnimations() {
@@ -52,10 +58,6 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
         .animate(
           CurvedAnimation(parent: _photo2Controller, curve: Curves.easeOut),
         );
-  }
-
-  void _loadPhotos() {
-    context.read<PhotoComparisonBloc>().add(LoadPhotos());
   }
 
   @override
