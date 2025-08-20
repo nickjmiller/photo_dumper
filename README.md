@@ -132,9 +132,8 @@ The app uses **BLoC (Business Logic Component)** pattern for state management:
 
 ### Events
 - `LoadPhotos`: Load photos for comparison
-- `KeepPhoto`: Keep a specific photo
+
 - `DeletePhoto`: Delete a specific photo
-- `KeepBothPhotos`: Keep both photos
 - `DeleteBothPhotos`: Delete both photos
 
 ### States

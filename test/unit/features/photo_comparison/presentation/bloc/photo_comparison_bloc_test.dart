@@ -10,68 +10,8 @@ import 'package:photo_dumper/core/error/failures.dart';
 
 class MockPhotoRepository implements PhotoRepository {
   @override
-  Future<Either<Failure, List<Photo>>> getPhotos() async {
-    return Right([]);
-  }
-
-  @override
   Future<Either<Failure, List<Photo>>> getLibraryPhotos() async {
     return Right([]);
-  }
-
-  @override
-  Future<Either<Failure, List<Photo>>> getSelectedPhotos() async {
-    return Right([]);
-  }
-
-  @override
-  Future<Either<Failure, Photo>> selectPhoto(String photoId) async {
-    return Right(Photo(id: photoId, name: 'test', createdAt: DateTime.now()));
-  }
-
-  @override
-  Future<Either<Failure, Photo>> deselectPhoto(String photoId) async {
-    return Right(Photo(id: photoId, name: 'test', createdAt: DateTime.now()));
-  }
-
-  @override
-  Future<Either<Failure, List<Photo>>> getRandomPair() async {
-    return Right([]);
-  }
-
-  @override
-  Future<Either<Failure, void>> keepPhoto(String photoId) async {
-    return const Right(null);
-  }
-
-  @override
-  Future<Either<Failure, void>> deletePhoto(String photoId) async {
-    return const Right(null);
-  }
-
-  @override
-  Future<Either<Failure, void>> keepBothPhotos() async {
-    return const Right(null);
-  }
-
-  @override
-  Future<Either<Failure, void>> deleteBothPhotos() async {
-    return const Right(null);
-  }
-
-  @override
-  Future<Either<Failure, int>> getSelectedPhotoCount() async {
-    return const Right(0);
-  }
-
-  @override
-  Future<Either<Failure, int>> getRemainingPhotoCount() async {
-    return const Right(0);
-  }
-
-  @override
-  Future<Either<Failure, void>> clearAllSelections() async {
-    return const Right(null);
   }
 }
 

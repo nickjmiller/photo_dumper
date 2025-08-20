@@ -81,6 +81,12 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                       onPressed: _pickPhotosAndCompare,
                       icon: const Icon(Icons.photo_library),
                       label: const Text('Select Photos'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
                     ),
                   ],
                 ),

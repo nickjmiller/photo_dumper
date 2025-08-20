@@ -77,35 +77,5 @@ void main() {
       final photos = result.getOrElse(() => []);
       expect(photos.length, 4); // 2 + 2 = 4
     });
-
-    test('should select photo from loaded library photos', () async {
-      // First load the photos
-      await repository.getLibraryPhotos();
-
-      // Then select a photo
-      final result = await repository.selectPhoto('1');
-
-      expect(result.isRight(), true);
-      final selectedPhoto = result.getOrElse(
-        () => Photo(id: '', name: '', createdAt: DateTime.now()),
-      );
-      expect(selectedPhoto.id, '1');
-      expect(selectedPhoto.isSelected, true);
-    });
-
-    test('should return error when selecting non-existent photo', () async {
-      // First load the photos
-      await repository.getLibraryPhotos();
-
-      // Then try to select a non-existent photo
-      final result = await repository.selectPhoto('999');
-
-      expect(result.isLeft(), true);
-      final failure = result.fold(
-        (f) => f,
-        (r) => throw Exception('Should be failure'),
-      );
-      expect(failure.message, contains('Photo not found'));
-    });
   });
 }
