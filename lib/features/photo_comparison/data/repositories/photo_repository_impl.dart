@@ -18,14 +18,25 @@ class PhotoRepositoryImpl implements PhotoRepository {
     try {
       final photos = await _photoLibraryDataSource.pickMultiplePhotos();
       if (photos.isNotEmpty) {
-        // Add the newly picked photos to the library
-        _libraryPhotos.addAll(photos);
-        // Return all photos in the library
-        return Right(_libraryPhotos);
+        // Only add photos to library if we have 2 or more photos
+        if (photos.length >= 2) {
+          // Clear previous library and add new photos
+          _libraryPhotos.clear();
+          _libraryPhotos.addAll(photos);
+          return Right(_libraryPhotos);
+        } else {
+          // Return empty list for invalid selection (less than 2 photos)
+          return Right([]);
+        }
       }
       return Right(_libraryPhotos);
     } catch (e) {
       return Left(ServerFailure('Failed to fetch library photos: $e'));
     }
+  }
+
+  // Method to clear the library (useful for testing or reset scenarios)
+  void clearLibrary() {
+    _libraryPhotos.clear();
   }
 }

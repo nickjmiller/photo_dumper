@@ -13,6 +13,8 @@ abstract class PhotoSelectionEvent extends Equatable {
 
 class PickPhotosAndCompare extends PhotoSelectionEvent {}
 
+class ResetSelection extends PhotoSelectionEvent {}
+
 // States
 abstract class PhotoSelectionState extends Equatable {
   const PhotoSelectionState();
@@ -50,6 +52,7 @@ class PhotoSelectionBloc
   PhotoSelectionBloc({required this.photoUseCases})
     : super(PhotoSelectionInitial()) {
     on<PickPhotosAndCompare>(_onPickPhotosAndCompare);
+    on<ResetSelection>(_onResetSelection);
   }
 
   Future<void> _onPickPhotosAndCompare(
@@ -63,12 +66,23 @@ class PhotoSelectionBloc
     result.fold((failure) => emit(PhotoSelectionError(failure.message)), (
       photos,
     ) {
-      if (photos.length >= 2) {
-        // All picked photos are automatically selected for comparison
+      if (photos.isEmpty) {
+        // No photos selected or invalid selection (less than 2 photos)
+        emit(const PhotoSelectionError('Please select at least 2 photos'));
+      } else if (photos.length >= 2) {
+        // Valid selection - proceed to comparison
         emit(ComparisonReady(selectedPhotos: photos));
       } else {
+        // This should not happen due to repository logic, but handle just in case
         emit(const PhotoSelectionError('Please select at least 2 photos'));
       }
     });
+  }
+
+  void _onResetSelection(
+    ResetSelection event,
+    Emitter<PhotoSelectionState> emit,
+  ) {
+    emit(PhotoSelectionInitial());
   }
 }

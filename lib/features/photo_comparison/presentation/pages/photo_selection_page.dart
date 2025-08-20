@@ -45,6 +45,12 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
+            // Reset to initial state after showing error
+            Future.delayed(const Duration(milliseconds: 100), () {
+              if (context.mounted) {
+                context.read<PhotoSelectionBloc>().add(ResetSelection());
+              }
+            });
           }
         },
         child: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(

@@ -46,6 +46,54 @@ class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   }
 }
 
+class MockPhotoLibraryDataSourceSinglePhoto implements PhotoLibraryDataSource {
+  @override
+  Future<List<Photo>> getLibraryPhotos() async {
+    return [
+      Photo(
+        id: '1',
+        name: 'Test Photo 1',
+        imagePath: '/test/path/1.jpg',
+        createdAt: DateTime.now(),
+      ),
+    ];
+  }
+
+  @override
+  Future<bool> requestPhotoPermission() async {
+    return true;
+  }
+
+  @override
+  Future<List<Photo>> pickMultiplePhotos() async {
+    return [
+      Photo(
+        id: '1',
+        name: 'Test Photo 1',
+        imagePath: '/test/path/1.jpg',
+        createdAt: DateTime.now(),
+      ),
+    ];
+  }
+}
+
+class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
+  @override
+  Future<List<Photo>> getLibraryPhotos() async {
+    return [];
+  }
+
+  @override
+  Future<bool> requestPhotoPermission() async {
+    return true;
+  }
+
+  @override
+  Future<List<Photo>> pickMultiplePhotos() async {
+    return [];
+  }
+}
+
 void main() {
   group('PhotoRepositoryImpl', () {
     late PhotoRepositoryImpl repository;
@@ -75,7 +123,37 @@ void main() {
 
       expect(result.isRight(), true);
       final photos = result.getOrElse(() => []);
-      expect(photos.length, 4); // 2 + 2 = 4
+      expect(
+        photos.length,
+        2,
+      ); // Library is cleared and new photos are added (2 photos)
+    });
+
+    test('should return empty list when only one photo is selected', () async {
+      final singlePhotoRepository = PhotoRepositoryImpl(
+        photoLibraryDataSource: MockPhotoLibraryDataSourceSinglePhoto(),
+      );
+
+      final result = await singlePhotoRepository.getLibraryPhotos();
+
+      expect(result.isRight(), true);
+      final photos = result.getOrElse(() => []);
+      expect(
+        photos.length,
+        0,
+      ); // Should return empty list for invalid selection
+    });
+
+    test('should return empty list when no photos are selected', () async {
+      final emptyPhotoRepository = PhotoRepositoryImpl(
+        photoLibraryDataSource: MockPhotoLibraryDataSourceEmpty(),
+      );
+
+      final result = await emptyPhotoRepository.getLibraryPhotos();
+
+      expect(result.isRight(), true);
+      final photos = result.getOrElse(() => []);
+      expect(photos.length, 0); // Should return empty list for no selection
     });
   });
 }

@@ -138,15 +138,9 @@ void main() {
       WidgetTester tester,
     ) async {
       when(mockPhotoUseCases.getLibraryPhotos()).thenAnswer(
-        (_) async => Right([
-          Photo(
-            id: '1',
-            name: 'photo1.jpg',
-            imagePath: '/path/to/photo1.jpg',
-            thumbnailPath: '/path/to/photo1.jpg',
-            createdAt: DateTime.now(),
-          ),
-        ]),
+        (_) async => Right(
+          [],
+        ), // Repository now returns empty list for invalid selection
       );
 
       await tester.pumpWidget(

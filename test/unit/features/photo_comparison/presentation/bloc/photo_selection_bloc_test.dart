@@ -65,9 +65,9 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when only 1 photo is picked',
         build: () {
-          when(
-            mockPhotoUseCases.getLibraryPhotos(),
-          ).thenAnswer((_) async => Right([testPhotos[0]]));
+          when(mockPhotoUseCases.getLibraryPhotos()).thenAnswer(
+            (_) async => Right([]),
+          ); // Repository now returns empty list for invalid selection
           return bloc;
         },
         act: (bloc) => bloc.add(PickPhotosAndCompare()),
@@ -114,6 +114,15 @@ void main() {
         verify: (_) {
           verify(mockPhotoUseCases.getLibraryPhotos()).called(1);
         },
+      );
+    });
+
+    group('ResetSelection', () {
+      blocTest<PhotoSelectionBloc, PhotoSelectionState>(
+        'should emit [PhotoSelectionInitial] when reset is called',
+        build: () => bloc,
+        act: (bloc) => bloc.add(ResetSelection()),
+        expect: () => [isA<PhotoSelectionInitial>()],
       );
     });
   });
