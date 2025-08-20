@@ -68,6 +68,7 @@ class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
           imagePath: file.path,
           thumbnailPath: file.path, // For simplicity, using same path
           createdAt: DateTime.now(),
+          file: File(file.path),
         );
         photos.add(photo);
       }

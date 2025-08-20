@@ -3,13 +3,6 @@ import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dar
 
 void main() {
   group('Photo Entity', () {
-    final testPhoto = Photo(
-      id: '1',
-      name: 'Test Photo',
-      imagePath: '/path/to/image.jpg',
-      createdAt: DateTime(2023, 1, 1),
-    );
-
     test('should create a Photo instance with correct properties', () {
       final photo = Photo(
         id: '1',

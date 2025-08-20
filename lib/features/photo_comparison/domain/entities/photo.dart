@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dart:io';
 
 class Photo extends Equatable {
   final String id;
@@ -7,6 +8,7 @@ class Photo extends Equatable {
   final String? thumbnailPath;
   final DateTime createdAt;
   final bool isSelected;
+  final File? file;
 
   const Photo({
     required this.id,
@@ -15,6 +17,7 @@ class Photo extends Equatable {
     this.thumbnailPath,
     required this.createdAt,
     this.isSelected = false,
+    this.file,
   });
 
   @override
@@ -25,6 +28,7 @@ class Photo extends Equatable {
     thumbnailPath,
     createdAt,
     isSelected,
+    file,
   ];
 
   Photo copyWith({
@@ -34,6 +38,7 @@ class Photo extends Equatable {
     String? thumbnailPath,
     DateTime? createdAt,
     bool? isSelected,
+    File? file,
   }) {
     return Photo(
       id: id ?? this.id,
@@ -42,6 +47,7 @@ class Photo extends Equatable {
       thumbnailPath: thumbnailPath ?? this.thumbnailPath,
       createdAt: createdAt ?? this.createdAt,
       isSelected: isSelected ?? this.isSelected,
+      file: file ?? this.file,
     );
   }
 }

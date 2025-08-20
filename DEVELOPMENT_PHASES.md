@@ -17,33 +17,43 @@
 - [ ] Update Photo Comparison BLoC with new events:
   - `LoadSelectedPhotos` - Initialize comparison with selected photos
   - `SelectWinner` - Choose winner between two photos
+  - `KeepBoth` - Remove both photos from competition
   - `NextPair` - Move to next random pair
   - `RestartComparison` - Start over with same photos
+  - `ConfirmDeletion` - Confirm deletion of eliminated photos
 - [ ] Add new states:
-  - `ComparisonInProgress` - Show current pair being compared
-  - `ComparisonComplete` - Show final winner
+  - `RoundOneInProgress` - First round: eliminate or skip
+  - `RoundTwoInProgress` - Second round: eliminate or keep both
+  - `DeletionConfirmation` - Show eliminated photos for confirmation
+  - `ComparisonComplete` - Show final kept photos
   - `NoMorePairs` - Handle edge cases
 
-### Random Pair Selection
-- [ ] Implement tournament-style elimination algorithm
-- [ ] Generate random pairs from selected photos
-- [ ] Track eliminated photos
-- [ ] Handle cases with odd number of photos
-- [ ] Ensure each photo gets fair comparison opportunities
+### Two-Round Photo Comparison
+- [ ] Implement two-round elimination algorithm
+- [ ] Round 1: Generate random pairs, eliminate or skip photos
+- [ ] Round 2: Generate pairs from remaining photos, eliminate or keep both
+- [ ] Track eliminated, kept, and skipped photos separately
+- [ ] Handle odd number of photos with automatic advancement
+- [ ] Ensure each photo gets fair comparison opportunities in both rounds
 
 ### Updated Photo Comparison Page
 - [ ] Accept `selectedPhotos` parameter from Phase 1
-- [ ] Show random pairs from selected photos instead of fixed pairs
-- [ ] Update UI to display current pair number (e.g., "Comparison 3 of 12")
-- [ ] Add progress indicator showing remaining photos
-- [ ] Replace "Keep Both" and "Discard Both" with single photo selection
-- [ ] Add "Skip" option for difficult decisions
+- [ ] Show current round indicator (Round 1 or Round 2)
+- [ ] Update UI to display current comparison (e.g., "Round 1: Comparison 3 of 12")
+- [ ] Add progress indicator showing remaining photos in current round
+- [ ] Round 1: "Choose Left", "Choose Right", "Skip This Pair"
+- [ ] Round 2: "Choose Left", "Choose Right", "Keep Both"
+- [ ] Show transition screen between rounds
 
 ### Action Buttons Update
-- [ ] Replace current action buttons with:
-  - "Choose Left Photo" button
-  - "Choose Right Photo" button  
-  - "Skip This Pair" button (moves both to next round)
+- [ ] Keep existing swiping mechanism for photo selection:
+  - Swipe left to choose left photo (eliminates right photo)
+  - Swipe right to choose right photo (eliminates left photo)
+- [ ] Round 1 additional buttons:
+  - "Skip This Pair" button (advances both to Round 2)
+  - "Restart Comparison" button
+- [ ] Round 2 additional buttons:
+  - "Keep Both" button (removes both from competition)
   - "Restart Comparison" button
 
 ## 📊 Phase 3: UI/UX Enhancements
@@ -70,25 +80,27 @@
 - [ ] Add session summary with eliminated photos count
 - [ ] Show comparison speed metrics
 
-### Winner Celebration
-- [ ] Create animated winner reveal screen
-- [ ] Show finalist photos leading to winner
-- [ ] Add sharing functionality for the winning photo
-- [ ] Option to save winner to a special album
-- [ ] Confetti animation and celebratory UI
+### Deletion Confirmation Screen
+- [ ] Create deletion confirmation screen showing all eliminated photos
+- [ ] Display count of photos to be deleted vs kept
+- [ ] Allow user to review and modify selections before deletion
+- [ ] Add "Confirm Delete" and "Cancel" buttons
+- [ ] Show preview of photos that will be kept
 
 ## 🧪 Phase 4: Testing and Polish
 
 ### Comprehensive Testing
-- [ ] Unit tests for tournament algorithm
+- [ ] Unit tests for comparison algorithm
 - [ ] Widget tests for all comparison UI components
 - [ ] Integration tests for complete photo selection to winner flow
 - [ ] Performance tests with large photo sets (100+ photos)
 - [ ] Memory usage optimization tests
 
 ### Edge Case Handling
-- [ ] Single photo selection (auto-declare winner)
+- [ ] Single photo selection (auto-keep)
 - [ ] Two photo selection (simple head-to-head)
+- [ ] All photos skipped in Round 1 (auto-advance to Round 2)
+- [ ] All photos kept in Round 2 (no deletion needed)
 - [ ] Handling of corrupted or unloadable images
 - [ ] App state persistence during interruptions
 - [ ] Graceful handling of permission revocation
@@ -127,7 +139,7 @@
 - [ ] Machine learning from user preferences
 - [ ] Weighted comparisons based on photo characteristics
 - [ ] Group comparison modes (family vs landscapes)
-- [ ] Tournament bracket visualization
+- [ ] Comparison history visualization
 
 ### Platform Integration
 - [ ] iCloud/Google Photos sync
@@ -163,7 +175,7 @@
 
 ## Current Status: Phase 1 Complete ✅
 
-**Next Steps:** Begin Phase 2 implementation focusing on the enhanced photo comparison logic and random pair generation algorithm.
+**Next Steps:** Begin Phase 2 implementation focusing on the enhanced photo comparison logic and simple elimination algorithm.
 
 **Estimated Timeline:**
 - Phase 2: 2-3 weeks

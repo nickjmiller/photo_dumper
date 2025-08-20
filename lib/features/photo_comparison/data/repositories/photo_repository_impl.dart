@@ -47,10 +47,12 @@ class PhotoRepositoryImpl implements PhotoRepository {
     try {
       final photos = await _photoLibraryDataSource.pickMultiplePhotos();
       if (photos.isNotEmpty) {
-        // Return the newly picked photos directly
-        return Right(photos);
+        // Add the newly picked photos to the library
+        _libraryPhotos.addAll(photos);
+        // Return all photos in the library
+        return Right(_libraryPhotos);
       }
-      return Right([]);
+      return Right(_libraryPhotos);
     } catch (e) {
       return Left(ServerFailure('Failed to fetch library photos: $e'));
     }

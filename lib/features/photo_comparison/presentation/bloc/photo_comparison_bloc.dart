@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/usecases/photo_usecases.dart';
+import 'dart:math';
 
 // Events
 abstract class PhotoComparisonEvent extends Equatable {
@@ -11,40 +12,40 @@ abstract class PhotoComparisonEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class InitializeWithPhotos extends PhotoComparisonEvent {
+class LoadSelectedPhotos extends PhotoComparisonEvent {
   final List<Photo> photos;
 
-  const InitializeWithPhotos({required this.photos});
+  const LoadSelectedPhotos({required this.photos});
 
   @override
   List<Object> get props => [photos];
 }
 
-class LoadPhotos extends PhotoComparisonEvent {}
+class SelectWinner extends PhotoComparisonEvent {
+  final Photo winner;
+  final Photo loser;
 
-class KeepPhoto extends PhotoComparisonEvent {
-  final String photoId;
-  final String photoName;
-
-  const KeepPhoto({required this.photoId, required this.photoName});
+  const SelectWinner({required this.winner, required this.loser});
 
   @override
-  List<Object> get props => [photoId, photoName];
+  List<Object> get props => [winner, loser];
 }
 
-class DeletePhoto extends PhotoComparisonEvent {
-  final String photoId;
-  final String photoName;
+class SkipPair extends PhotoComparisonEvent {
+  final Photo photo1;
+  final Photo photo2;
 
-  const DeletePhoto({required this.photoId, required this.photoName});
+  const SkipPair({required this.photo1, required this.photo2});
 
   @override
-  List<Object> get props => [photoId, photoName];
+  List<Object> get props => [photo1, photo2];
 }
 
-class KeepBothPhotos extends PhotoComparisonEvent {}
+class NextPair extends PhotoComparisonEvent {}
 
-class DeleteBothPhotos extends PhotoComparisonEvent {}
+class RestartComparison extends PhotoComparisonEvent {}
+
+class ConfirmDeletion extends PhotoComparisonEvent {}
 
 // States
 abstract class PhotoComparisonState extends Equatable {
@@ -58,28 +59,67 @@ class PhotoComparisonInitial extends PhotoComparisonState {}
 
 class PhotoComparisonLoading extends PhotoComparisonState {}
 
-class PhotoComparisonLoaded extends PhotoComparisonState {
-  final List<Photo> photos;
+class TournamentInProgress extends PhotoComparisonState {
+  final Photo currentPhoto1;
+  final Photo currentPhoto2;
+  final int currentComparison;
+  final int totalComparisons;
+  final List<Photo> remainingPhotos;
+  final List<Photo> eliminatedPhotos;
 
-  const PhotoComparisonLoaded({required this.photos});
-
-  @override
-  List<Object> get props => [photos];
-}
-
-class PhotoComparisonActionInProgress extends PhotoComparisonState {}
-
-class PhotoComparisonActionSuccess extends PhotoComparisonState {
-  final String message;
-  final List<Photo> photos;
-
-  const PhotoComparisonActionSuccess({
-    required this.message,
-    required this.photos,
+  const TournamentInProgress({
+    required this.currentPhoto1,
+    required this.currentPhoto2,
+    required this.currentComparison,
+    required this.totalComparisons,
+    required this.remainingPhotos,
+    required this.eliminatedPhotos,
   });
 
   @override
-  List<Object> get props => [message, photos];
+  List<Object> get props => [
+    currentPhoto1,
+    currentPhoto2,
+    currentComparison,
+    totalComparisons,
+    remainingPhotos,
+    eliminatedPhotos,
+  ];
+}
+
+class DeletionConfirmation extends PhotoComparisonState {
+  final List<Photo> eliminatedPhotos;
+  final List<Photo> winner;
+
+  const DeletionConfirmation({
+    required this.eliminatedPhotos,
+    required this.winner,
+  });
+
+  @override
+  List<Object> get props => [eliminatedPhotos, winner];
+}
+
+class ComparisonComplete extends PhotoComparisonState {
+  final List<Photo> winner;
+
+  const ComparisonComplete({required this.winner});
+
+  @override
+  List<Object> get props => [winner];
+}
+
+class NoMorePairs extends PhotoComparisonState {
+  final List<Photo> remainingPhotos;
+  final List<Photo> eliminatedPhotos;
+
+  const NoMorePairs({
+    required this.remainingPhotos,
+    required this.eliminatedPhotos,
+  });
+
+  @override
+  List<Object> get props => [remainingPhotos, eliminatedPhotos];
 }
 
 class PhotoComparisonError extends PhotoComparisonState {
@@ -94,123 +134,167 @@ class PhotoComparisonError extends PhotoComparisonState {
 class PhotoComparisonBloc
     extends Bloc<PhotoComparisonEvent, PhotoComparisonState> {
   final PhotoUseCases photoUseCases;
+  final Random _random = Random();
+
+  // Internal state tracking
+  List<Photo> _allPhotos = [];
+  List<Photo> _remainingPhotos = [];
+  List<Photo> _eliminatedPhotos = [];
+  List<List<Photo>> _currentRoundPairs = [];
+  int _currentPairIndex = 0;
 
   PhotoComparisonBloc({required this.photoUseCases})
     : super(PhotoComparisonInitial()) {
-    on<InitializeWithPhotos>(_onInitializeWithPhotos);
-    on<LoadPhotos>(_onLoadPhotos);
-    on<KeepPhoto>(_onKeepPhoto);
-    on<DeletePhoto>(_onDeletePhoto);
-    on<KeepBothPhotos>(_onKeepBothPhotos);
-    on<DeleteBothPhotos>(_onDeleteBothPhotos);
+    on<LoadSelectedPhotos>(_onLoadSelectedPhotos);
+    on<SelectWinner>(_onSelectWinner);
+    on<SkipPair>(_onSkipPair);
+    on<NextPair>(_onNextPair);
+    on<RestartComparison>(_onRestartComparison);
+    on<ConfirmDeletion>(_onConfirmDeletion);
   }
 
-  Future<void> _onInitializeWithPhotos(
-    InitializeWithPhotos event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    emit(PhotoComparisonLoaded(photos: event.photos));
-  }
-
-  Future<void> _onLoadPhotos(
-    LoadPhotos event,
+  Future<void> _onLoadSelectedPhotos(
+    LoadSelectedPhotos event,
     Emitter<PhotoComparisonState> emit,
   ) async {
     emit(PhotoComparisonLoading());
 
-    final result = await photoUseCases.getPhotos();
+    _allPhotos = List.from(event.photos);
+    _remainingPhotos = List.from(event.photos);
+    _eliminatedPhotos = [];
+    _currentPairIndex = 0;
 
-    result.fold(
-      (failure) => emit(PhotoComparisonError(failure.message)),
-      (photos) => emit(PhotoComparisonLoaded(photos: photos)),
+    _generatePairs();
+    _emitCurrentState(emit);
+  }
+
+  Future<void> _onSelectWinner(
+    SelectWinner event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    // Remove both photos from remaining
+    _remainingPhotos.remove(event.winner);
+    _remainingPhotos.remove(event.loser);
+
+    // Add winner back to remaining for next round
+    _remainingPhotos.add(event.winner);
+
+    // Add loser to eliminated
+    _eliminatedPhotos.add(event.loser);
+
+    _nextPair(emit);
+  }
+
+  Future<void> _onSkipPair(
+    SkipPair event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    emit(PhotoComparisonLoading());
+
+    // Remove both photos from current pair
+    _remainingPhotos.remove(event.photo1);
+    _remainingPhotos.remove(event.photo2);
+
+    // Add both back to remaining photos for future comparison
+    _remainingPhotos.add(event.photo1);
+    _remainingPhotos.add(event.photo2);
+
+    _nextPair(emit);
+  }
+
+  Future<void> _onNextPair(
+    NextPair event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    _nextPair(emit);
+  }
+
+  Future<void> _onRestartComparison(
+    RestartComparison event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    _allPhotos = List.from(_allPhotos);
+    _remainingPhotos = List.from(_allPhotos);
+    _eliminatedPhotos = [];
+    _currentPairIndex = 0;
+
+    _generatePairs();
+    _emitCurrentState(emit);
+  }
+
+  Future<void> _onConfirmDeletion(
+    ConfirmDeletion event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    emit(ComparisonComplete(winner: _remainingPhotos));
+  }
+
+  void _generatePairs() {
+    _currentRoundPairs = [];
+    final shuffledPhotos = List<Photo>.from(_remainingPhotos);
+    shuffledPhotos.shuffle(_random);
+
+    for (int i = 0; i < shuffledPhotos.length - 1; i += 2) {
+      _currentRoundPairs.add([shuffledPhotos[i], shuffledPhotos[i + 1]]);
+    }
+
+    // Handle odd number of photos - the last photo advances automatically
+    if (shuffledPhotos.length % 2 == 1) {
+      // The last photo automatically advances to next round
+      // No need to do anything special, it will be included in next round's pairs
+    }
+
+    _currentPairIndex = 0;
+  }
+
+  void _nextPair(Emitter<PhotoComparisonState> emit) {
+    _currentPairIndex++;
+
+    if (_currentPairIndex >= _currentRoundPairs.length) {
+      // Round complete
+      _generatePairs();
+    }
+
+    _emitCurrentState(emit);
+  }
+
+  void _emitCurrentState(Emitter<PhotoComparisonState> emit) {
+    // Check if tournament is complete (only one photo remaining)
+    if (_remainingPhotos.length == 1) {
+      emit(
+        DeletionConfirmation(
+          eliminatedPhotos: _eliminatedPhotos,
+          winner: _remainingPhotos,
+        ),
+      );
+      return;
+    }
+
+    // Check if we have pairs to compare
+    if (_currentRoundPairs.isEmpty ||
+        _currentPairIndex >= _currentRoundPairs.length) {
+      emit(
+        NoMorePairs(
+          remainingPhotos: _remainingPhotos,
+          eliminatedPhotos: _eliminatedPhotos,
+        ),
+      );
+      return;
+    }
+
+    final currentPair = _currentRoundPairs[_currentPairIndex];
+    final currentPhoto1 = currentPair[0];
+    final currentPhoto2 = currentPair[1];
+
+    emit(
+      TournamentInProgress(
+        currentPhoto1: currentPhoto1,
+        currentPhoto2: currentPhoto2,
+        currentComparison: _currentPairIndex + 1,
+        totalComparisons: _currentRoundPairs.length,
+        remainingPhotos: _remainingPhotos,
+        eliminatedPhotos: _eliminatedPhotos,
+      ),
     );
-  }
-
-  Future<void> _onKeepPhoto(
-    KeepPhoto event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is PhotoComparisonLoaded) {
-      emit(PhotoComparisonActionInProgress());
-
-      final result = await photoUseCases.keepPhoto(event.photoId);
-
-      result.fold(
-        (failure) => emit(PhotoComparisonError(failure.message)),
-        (_) => emit(
-          PhotoComparisonActionSuccess(
-            message: '${event.photoName} kept successfully',
-            photos: currentState.photos,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _onDeletePhoto(
-    DeletePhoto event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is PhotoComparisonLoaded) {
-      emit(PhotoComparisonActionInProgress());
-
-      final result = await photoUseCases.deletePhoto(event.photoId);
-
-      result.fold(
-        (failure) => emit(PhotoComparisonError(failure.message)),
-        (_) => emit(
-          PhotoComparisonActionSuccess(
-            message: '${event.photoName} deleted successfully',
-            photos: currentState.photos,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _onKeepBothPhotos(
-    KeepBothPhotos event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is PhotoComparisonLoaded) {
-      emit(PhotoComparisonActionInProgress());
-
-      final result = await photoUseCases.keepBothPhotos();
-
-      result.fold(
-        (failure) => emit(PhotoComparisonError(failure.message)),
-        (_) => emit(
-          PhotoComparisonActionSuccess(
-            message: 'Both photos kept successfully',
-            photos: currentState.photos,
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _onDeleteBothPhotos(
-    DeleteBothPhotos event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is PhotoComparisonLoaded) {
-      emit(PhotoComparisonActionInProgress());
-
-      final result = await photoUseCases.deleteBothPhotos();
-
-      result.fold(
-        (failure) => emit(PhotoComparisonError(failure.message)),
-        (_) => emit(
-          PhotoComparisonActionSuccess(
-            message: 'Both photos deleted successfully',
-            photos: currentState.photos,
-          ),
-        ),
-      );
-    }
   }
 }

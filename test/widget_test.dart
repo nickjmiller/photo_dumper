@@ -11,16 +11,10 @@ import 'package:photo_dumper/features/photo_comparison/presentation/widgets/acti
 
 void main() {
   testWidgets('Action buttons widget test', (WidgetTester tester) async {
-    bool keepBothCalled = false;
-    bool discardBothCalled = false;
-
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: ActionButtons(
-            onKeepBoth: () => keepBothCalled = true,
-            onDiscardBoth: () => discardBothCalled = true,
-          ),
+          body: ActionButtons(onKeepBoth: () {}, onDiscardBoth: () {}),
         ),
       ),
     );
