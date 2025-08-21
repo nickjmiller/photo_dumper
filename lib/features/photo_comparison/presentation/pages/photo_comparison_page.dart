@@ -4,6 +4,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/dependency_injection.dart';
 import '../bloc/photo_comparison_bloc.dart';
 import '../bloc/photo_selection_bloc.dart';
+import '../widgets/all_pairs_skipped_dialog.dart';
 import '../widgets/photo_card.dart';
 import '../../domain/entities/photo.dart';
 import 'photo_selection_page.dart';
@@ -254,6 +255,17 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
               ),
             );
           }
+          if (state is AllPairsSkipped) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => BlocProvider.value(
+                value: context.read<PhotoComparisonBloc>(),
+                child:
+                    AllPairsSkippedDialog(remainingPhotos: state.remainingPhotos),
+              ),
+            );
+          }
         },
         child: BlocBuilder<PhotoComparisonBloc, PhotoComparisonState>(
           builder: (context, state) {
@@ -409,10 +421,6 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
 
             if (state is ComparisonComplete) {
               return _buildCompletionScreen(state);
-            }
-
-            if (state is NoMorePairs) {
-              return _buildNoMorePairsScreen(state);
             }
 
             return const Center(
@@ -579,40 +587,6 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
               ).pushNamedAndRemoveUntil('/', (route) => false);
             },
             child: const Text('Done'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoMorePairsScreen(NoMorePairs state) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          const SizedBox(height: 32),
-          Icon(
-            Icons.info_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No More Pairs',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${state.remainingPhotos.length} photos remaining\n${state.eliminatedPhotos.length} photos eliminated',
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-
-          FilledButton(
-            onPressed: _restartComparison,
-            child: const Text('Restart Comparison'),
           ),
         ],
       ),
