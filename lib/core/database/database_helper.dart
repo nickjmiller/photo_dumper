@@ -4,16 +4,13 @@ import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static const _databaseName = "PhotoComparer.db";
-  static const _databaseVersion = 1;
+  static const _databaseVersion = 2;
 
   static const table = 'comparison_sessions';
 
   static const columnId = 'id';
   static const columnAllPhotoIds = 'allPhotoIds';
-  static const columnRemainingPhotoIds = 'remainingPhotoIds';
   static const columnEliminatedPhotoIds = 'eliminatedPhotoIds';
-  static const columnSkippedPairKeys = 'skippedPairKeys';
-  static const columnDontAskAgain = 'dontAskAgain';
   static const columnCreatedAt = 'createdAt';
 
   // Make this a singleton class
@@ -34,7 +31,8 @@ class DatabaseHelper {
     final path = join(documentsDirectory.path, _databaseName);
     return await openDatabase(path,
         version: _databaseVersion,
-        onCreate: _onCreate);
+        onCreate: _onCreate,
+        onUpgrade: _onUpgrade);
   }
 
   // SQL code to create the database table
@@ -43,12 +41,15 @@ class DatabaseHelper {
           CREATE TABLE $table (
             $columnId TEXT PRIMARY KEY,
             $columnAllPhotoIds TEXT NOT NULL,
-            $columnRemainingPhotoIds TEXT NOT NULL,
             $columnEliminatedPhotoIds TEXT NOT NULL,
-            $columnSkippedPairKeys TEXT NOT NULL,
-            $columnDontAskAgain INTEGER NOT NULL,
             $columnCreatedAt TEXT NOT NULL
           )
           ''');
+  }
+
+  // SQL code to upgrade the database
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    await db.execute('DROP TABLE IF EXISTS $table');
+    await _onCreate(db, newVersion);
   }
 }

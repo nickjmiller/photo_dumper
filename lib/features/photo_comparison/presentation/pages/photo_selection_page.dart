@@ -31,6 +31,10 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('Select Photos'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),

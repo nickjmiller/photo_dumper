@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../domain/entities/photo.dart';
 import '../../domain/entities/comparison_session.dart';
 import '../../domain/repositories/comparison_repository.dart';
 import '../../domain/repositories/photo_repository.dart';
@@ -22,10 +23,7 @@ class ComparisonRepositoryImpl implements ComparisonRepository {
       final sessionModel = ComparisonSessionModel(
         id: session.id,
         allPhotoIds: session.allPhotos.map((p) => p.id).toList(),
-        remainingPhotoIds: session.remainingPhotos.map((p) => p.id).toList(),
         eliminatedPhotoIds: session.eliminatedPhotos.map((p) => p.id).toList(),
-        skippedPairKeys: session.skippedPairKeys.toList(),
-        dontAskAgain: session.dontAskAgain,
         createdAt: session.createdAt,
       );
       await localDataSource.saveComparison(sessionModel);
@@ -96,22 +94,23 @@ class ComparisonRepositoryImpl implements ComparisonRepository {
         (photos) {
           final photoMap = {for (var p in photos) p.id: p};
 
-          final allPhotosList = model.allPhotoIds.map((id) => photoMap[id]!).where((p) => p != null).toList();
-          final remainingPhotosList = model.remainingPhotoIds.map((id) => photoMap[id]!).where((p) => p != null).toList();
-          final eliminatedPhotosList = model.eliminatedPhotoIds.map((id) => photoMap[id]!).where((p) => p != null).toList();
+          final allPhotosList = model.allPhotoIds.map((id) => photoMap[id]).whereType<Photo>().toList();
+          final eliminatedPhotosList = model.eliminatedPhotoIds.map((id) => photoMap[id]).whereType<Photo>().toList();
 
           // Check if any photo was not found, which would indicate data inconsistency
           if (allPhotosList.length != model.allPhotoIds.length) {
             return Left(CacheFailure('Failed to reconstruct session: Photo data missing'));
           }
 
+          // Calculate remaining photos
+          final eliminatedIds = eliminatedPhotosList.map((p) => p.id).toSet();
+          final remainingPhotosList = allPhotosList.where((p) => !eliminatedIds.contains(p.id)).toList();
+
           return Right(ComparisonSession(
             id: model.id,
             allPhotos: allPhotosList,
             remainingPhotos: remainingPhotosList,
             eliminatedPhotos: eliminatedPhotosList,
-            skippedPairKeys: model.skippedPairKeys.toSet(),
-            dontAskAgain: model.dontAskAgain,
             createdAt: model.createdAt,
           ));
         },

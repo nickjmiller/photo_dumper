@@ -232,12 +232,16 @@ class PhotoComparisonBloc
   ) async {
     emit(PhotoComparisonLoading());
 
+    // Restore persisted state
     _sessionId = event.session.id;
     _allPhotos = List.from(event.session.allPhotos);
     _remainingPhotos = List.from(event.session.remainingPhotos);
     _eliminatedPhotos = List.from(event.session.eliminatedPhotos);
-    _skippedPairs = Set.from(event.session.skippedPairKeys);
-    _dontAskAgain = event.session.dontAskAgain;
+
+    // Reset transient state
+    _skippedPairs = {};
+    _dontAskAgain = false;
+    _currentPairIndex = 0;
 
     _generatePairs();
     _emitCurrentState(emit);
@@ -252,10 +256,8 @@ class PhotoComparisonBloc
     final session = ComparisonSession(
       id: _sessionId!,
       allPhotos: _allPhotos,
-      remainingPhotos: _remainingPhotos,
+      remainingPhotos: _remainingPhotos, // This will be calculated on load
       eliminatedPhotos: _eliminatedPhotos,
-      skippedPairKeys: _skippedPairs,
-      dontAskAgain: _dontAskAgain,
       createdAt: DateTime.now(),
     );
 

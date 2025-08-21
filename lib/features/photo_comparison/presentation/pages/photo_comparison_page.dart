@@ -317,7 +317,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
         },
         child: BlocBuilder<PhotoComparisonBloc, PhotoComparisonState>(
           builder: (context, state) {
-            if (state is PhotoComparisonLoading) {
+            if (state is PhotoComparisonLoading || state is PhotoComparisonPaused) {
               return const Center(child: CircularProgressIndicator());
             }
 

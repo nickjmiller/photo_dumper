@@ -7,8 +7,6 @@ class ComparisonSession extends Equatable {
   final List<Photo> allPhotos;
   final List<Photo> remainingPhotos;
   final List<Photo> eliminatedPhotos;
-  final Set<String> skippedPairKeys;
-  final bool dontAskAgain;
   final DateTime createdAt;
 
   const ComparisonSession({
@@ -16,8 +14,6 @@ class ComparisonSession extends Equatable {
     required this.allPhotos,
     required this.remainingPhotos,
     required this.eliminatedPhotos,
-    required this.skippedPairKeys,
-    required this.dontAskAgain,
     required this.createdAt,
   });
 
@@ -27,8 +23,6 @@ class ComparisonSession extends Equatable {
         allPhotos,
         remainingPhotos,
         eliminatedPhotos,
-        skippedPairKeys,
-        dontAskAgain,
         createdAt,
       ];
 }
