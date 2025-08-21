@@ -73,10 +73,12 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                 itemBuilder: (context, index) {
                   final photo = state.allPhotos[index];
                   final isSelected = state.selectedPhotos.contains(photo);
+                  final isLocked = state.lockedPhotoIds.contains(photo.id);
                   return SelectablePhotoCard(
                     key: Key('photo_thumbnail_${photo.id}'),
                     photo: photo,
                     isSelected: isSelected,
+                    isLocked: isLocked,
                     onTap: () => _toggleSelection(photo),
                   );
                 },

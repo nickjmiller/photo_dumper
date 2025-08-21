@@ -6,7 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
 import 'features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
 import 'features/photo_comparison/presentation/pages/photo_comparison_page.dart';
-import 'features/photo_comparison/presentation/pages/photo_selection_page.dart';
+import 'features/photo_comparison/presentation/pages/comparison_list_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,16 +22,22 @@ class PhotoDumperApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => PhotoSelectionBloc(photoUseCases: getIt()),
+          create: (context) => PhotoSelectionBloc(
+            photoUseCases: getIt(),
+            comparisonUseCases: getIt(),
+          ),
         ),
         BlocProvider(
-          create: (context) => PhotoComparisonBloc(photoUseCases: getIt()),
+          create: (context) => PhotoComparisonBloc(
+            photoUseCases: getIt(),
+            comparisonUseCases: getIt(),
+          ),
         ),
       ],
       child: MaterialApp(
         title: AppConstants.appTitle,
         theme: AppTheme.lightTheme,
-        home: const PhotoSelectionPage(),
+        home: const ComparisonListPage(),
         routes: {
           PhotoComparisonPage.routeName: (context) {
             final args = ModalRoute.of(context)!.settings.arguments

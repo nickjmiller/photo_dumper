@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/photo.dart';
+import '../../domain/usecases/comparison_usecases.dart';
 import '../../domain/usecases/photo_usecases.dart';
 
 // Events
@@ -41,22 +42,26 @@ class PhotoSelectionLoading extends PhotoSelectionState {}
 class PhotoSelectionLoaded extends PhotoSelectionState {
   final List<Photo> allPhotos;
   final List<Photo> selectedPhotos;
+  final Set<String> lockedPhotoIds;
 
   const PhotoSelectionLoaded({
     required this.allPhotos,
     this.selectedPhotos = const [],
+    this.lockedPhotoIds = const {},
   });
 
   @override
-  List<Object> get props => [allPhotos, selectedPhotos];
+  List<Object> get props => [allPhotos, selectedPhotos, lockedPhotoIds];
 
   PhotoSelectionLoaded copyWith({
     List<Photo>? allPhotos,
     List<Photo>? selectedPhotos,
+    Set<String>? lockedPhotoIds,
   }) {
     return PhotoSelectionLoaded(
       allPhotos: allPhotos ?? this.allPhotos,
       selectedPhotos: selectedPhotos ?? this.selectedPhotos,
+      lockedPhotoIds: lockedPhotoIds ?? this.lockedPhotoIds,
     );
   }
 }
@@ -82,9 +87,12 @@ class PhotoSelectionError extends PhotoSelectionState {
 class PhotoSelectionBloc
     extends Bloc<PhotoSelectionEvent, PhotoSelectionState> {
   final PhotoUseCases photoUseCases;
+  final ComparisonUseCases comparisonUseCases;
 
-  PhotoSelectionBloc({required this.photoUseCases})
-      : super(PhotoSelectionInitial()) {
+  PhotoSelectionBloc({
+    required this.photoUseCases,
+    required this.comparisonUseCases,
+  }) : super(PhotoSelectionInitial()) {
     on<LoadPhotos>(_onLoadPhotos);
     on<TogglePhotoSelection>(_onTogglePhotoSelection);
     on<StartComparison>(_onStartComparison);
@@ -96,11 +104,27 @@ class PhotoSelectionBloc
     Emitter<PhotoSelectionState> emit,
   ) async {
     emit(PhotoSelectionLoading());
-    final result = await photoUseCases.getPhotosFromGallery();
-    result.fold(
-      (failure) => emit(PhotoSelectionError(failure.message)),
-      (photos) => emit(PhotoSelectionLoaded(allPhotos: photos)),
-    );
+
+    final lockedIdsResult = await comparisonUseCases.getAllPhotoIdsInUse();
+    final photosResult = await photoUseCases.getPhotosFromGallery();
+
+    if (lockedIdsResult.isLeft()) {
+      emit(const PhotoSelectionError('Could not load session data.'));
+      return;
+    }
+
+    if (photosResult.isLeft()) {
+      emit(const PhotoSelectionError('Could not load photos from gallery.'));
+      return;
+    }
+
+    final lockedIds = lockedIdsResult.getOrElse(() => []);
+    final photos = photosResult.getOrElse(() => []);
+
+    emit(PhotoSelectionLoaded(
+      allPhotos: photos,
+      lockedPhotoIds: lockedIds.toSet(),
+    ));
   }
 
   void _onTogglePhotoSelection(
@@ -109,6 +133,11 @@ class PhotoSelectionBloc
   ) {
     if (state is PhotoSelectionLoaded) {
       final currentState = state as PhotoSelectionLoaded;
+
+      if (currentState.lockedPhotoIds.contains(event.photo.id)) {
+        return; // Do not allow selecting locked photos
+      }
+
       final newSelectedPhotos = List<Photo>.from(currentState.selectedPhotos);
 
       if (newSelectedPhotos.contains(event.photo)) {

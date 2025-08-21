@@ -20,4 +20,14 @@ class PhotoRepositoryImpl implements PhotoRepository {
       return Left(ServerFailure('Failed to fetch photos from gallery: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, List<Photo>>> getPhotosByIds(List<String> ids) async {
+    try {
+      final photos = await _photoLibraryDataSource.getPhotosByIds(ids);
+      return Right(photos);
+    } catch (e) {
+      return Left(ServerFailure('Failed to fetch photos by IDs: $e'));
+    }
+  }
 }

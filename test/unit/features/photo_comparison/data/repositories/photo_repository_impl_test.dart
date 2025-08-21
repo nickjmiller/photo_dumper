@@ -28,6 +28,11 @@ class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   Future<bool> requestPhotoPermission() async {
     return true;
   }
+
+  @override
+  Future<List<Photo>> getPhotosByIds(List<String> ids) async {
+    return [];
+  }
 }
 
 class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
@@ -40,6 +45,11 @@ class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
   Future<bool> requestPhotoPermission() async {
     return true;
   }
+
+  @override
+  Future<List<Photo>> getPhotosByIds(List<String> ids) async {
+    return [];
+  }
 }
 
 class MockPhotoLibraryDataSourceThrowsException implements PhotoLibraryDataSource {
@@ -51,6 +61,11 @@ class MockPhotoLibraryDataSourceThrowsException implements PhotoLibraryDataSourc
   @override
   Future<bool> requestPhotoPermission() async {
     return true;
+  }
+
+  @override
+  Future<List<Photo>> getPhotosByIds(List<String> ids) async {
+    throw Exception('Test Exception');
   }
 }
 

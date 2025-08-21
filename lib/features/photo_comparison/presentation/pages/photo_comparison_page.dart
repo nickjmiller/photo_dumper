@@ -6,14 +6,20 @@ import '../bloc/photo_comparison_bloc.dart';
 import '../bloc/photo_selection_bloc.dart';
 import '../widgets/all_pairs_skipped_dialog.dart';
 import '../widgets/photo_card.dart';
+import '../../domain/entities/comparison_session.dart';
 import '../../domain/entities/photo.dart';
 import 'photo_selection_page.dart';
 
 class PhotoComparisonPage extends StatefulWidget {
   static const routeName = '/photo-comparison';
-  final List<Photo> selectedPhotos;
+  final List<Photo>? selectedPhotos;
+  final ComparisonSession? sessionToResume;
 
-  const PhotoComparisonPage({super.key, required this.selectedPhotos});
+  const PhotoComparisonPage({
+    super.key,
+    this.selectedPhotos,
+    this.sessionToResume,
+  }) : assert(selectedPhotos != null || sessionToResume != null);
 
   @override
   State<PhotoComparisonPage> createState() => _PhotoComparisonPageState();
@@ -40,10 +46,15 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
   void initState() {
     super.initState();
     _initializeAnimations();
-    // Initialize the bloc with the selected photos
-    context.read<PhotoComparisonBloc>().add(
-      LoadSelectedPhotos(photos: widget.selectedPhotos),
-    );
+    if (widget.sessionToResume != null) {
+      context.read<PhotoComparisonBloc>().add(
+            ResumeComparison(session: widget.sessionToResume!),
+          );
+    } else {
+      context.read<PhotoComparisonBloc>().add(
+            LoadSelectedPhotos(photos: widget.selectedPhotos!),
+          );
+    }
   }
 
   void _initializeAnimations() {
@@ -222,11 +233,44 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) => BlocProvider(
-          create: (context) => PhotoSelectionBloc(photoUseCases: getIt()),
+          create: (context) => PhotoSelectionBloc(
+            photoUseCases: getIt(),
+            comparisonUseCases: getIt(),
+          ),
           child: const PhotoSelectionPage(),
         ),
       ),
       (route) => false,
+    );
+  }
+
+  Future<void> _showExitDialog() async {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Exit Comparison'),
+        content: const Text('Do you want to save your progress?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _cancelComparison();
+            },
+            child: const Text('Discard'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<PhotoComparisonBloc>().add(PauseComparison());
+              // The listener will handle popping the page
+            },
+            child: const Text('Save & Exit'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -238,7 +282,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
-            onPressed: _cancelComparison,
+            onPressed: _showExitDialog,
             icon: const Icon(Icons.close),
             tooltip: 'Cancel',
           ),
@@ -246,6 +290,10 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
       ),
       body: BlocListener<PhotoComparisonBloc, PhotoComparisonState>(
         listener: (context, state) {
+          if (state is PhotoComparisonPaused) {
+            Navigator.of(context).pop();
+            return;
+          }
           if (state is PhotoComparisonError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

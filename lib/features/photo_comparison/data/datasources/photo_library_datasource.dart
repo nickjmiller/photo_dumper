@@ -4,10 +4,38 @@ import '../../domain/entities/photo.dart';
 
 abstract class PhotoLibraryDataSource {
   Future<List<Photo>> getPhotosFromGallery();
+  Future<List<Photo>> getPhotosByIds(List<String> ids);
   Future<bool> requestPhotoPermission();
 }
 
 class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
+  @override
+  Future<List<Photo>> getPhotosByIds(List<String> ids) async {
+    try {
+      final List<Photo> photos = [];
+      for (final id in ids) {
+        final asset = await AssetEntity.fromId(id);
+        if (asset != null) {
+          final file = await asset.file;
+          if (file != null) {
+            photos.add(
+              Photo(
+                id: asset.id,
+                name: asset.title ?? 'No title',
+                imagePath: file.path,
+                thumbnailPath: file.path,
+                createdAt: asset.createDateTime,
+                file: file,
+              ),
+            );
+          }
+        }
+      }
+      return photos;
+    } catch (e) {
+      throw Exception('Failed to get photos by IDs: $e');
+    }
+  }
   @override
   Future<bool> requestPhotoPermission() async {
     final ps = await PhotoManager.requestPermissionExtend();

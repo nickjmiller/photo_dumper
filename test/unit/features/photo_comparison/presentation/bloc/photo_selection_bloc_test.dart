@@ -4,16 +4,18 @@ import 'package:dartz/dartz.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
+import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
 import 'package:photo_dumper/core/error/failures.dart';
 
 import 'photo_selection_bloc_test.mocks.dart';
 
-@GenerateMocks([PhotoUseCases])
+@GenerateMocks([PhotoUseCases, ComparisonUseCases])
 void main() {
   group('PhotoSelectionBloc', () {
     late MockPhotoUseCases mockPhotoUseCases;
+    late MockComparisonUseCases mockComparisonUseCases;
     late PhotoSelectionBloc bloc;
     final testPhotos = [
       Photo(
@@ -34,7 +36,11 @@ void main() {
 
     setUp(() {
       mockPhotoUseCases = MockPhotoUseCases();
-      bloc = PhotoSelectionBloc(photoUseCases: mockPhotoUseCases);
+      mockComparisonUseCases = MockComparisonUseCases();
+      bloc = PhotoSelectionBloc(
+        photoUseCases: mockPhotoUseCases,
+        comparisonUseCases: mockComparisonUseCases,
+      );
     });
 
     tearDown(() {
@@ -49,6 +55,8 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionLoaded] when photos are loaded successfully',
         build: () {
+          when(mockComparisonUseCases.getAllPhotoIdsInUse())
+              .thenAnswer((_) async => const Right([]));
           when(mockPhotoUseCases.getPhotosFromGallery())
               .thenAnswer((_) async => Right(testPhotos));
           return bloc;
@@ -56,17 +64,33 @@ void main() {
         act: (bloc) => bloc.add(LoadPhotos()),
         expect: () => [
           isA<PhotoSelectionLoading>(),
-          isA<PhotoSelectionLoaded>().having(
-            (state) => state.allPhotos,
-            'allPhotos',
-            testPhotos,
-          ),
+          isA<PhotoSelectionLoaded>()
+              .having((s) => s.allPhotos, 'allPhotos', testPhotos)
+              .having((s) => s.lockedPhotoIds, 'lockedPhotoIds', isEmpty),
+        ],
+      );
+
+      blocTest<PhotoSelectionBloc, PhotoSelectionState>(
+        'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading locked IDs fails',
+        build: () {
+          when(mockComparisonUseCases.getAllPhotoIdsInUse())
+              .thenAnswer((_) async => Left(CacheFailure('Failed')));
+          when(mockPhotoUseCases.getPhotosFromGallery())
+              .thenAnswer((_) async => Right(testPhotos));
+          return bloc;
+        },
+        act: (bloc) => bloc.add(LoadPhotos()),
+        expect: () => [
+          isA<PhotoSelectionLoading>(),
+          isA<PhotoSelectionError>(),
         ],
       );
 
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading photos fails',
         build: () {
+          when(mockComparisonUseCases.getAllPhotoIdsInUse())
+              .thenAnswer((_) async => const Right([]));
           when(mockPhotoUseCases.getPhotosFromGallery())
               .thenAnswer((_) async => Left(ServerFailure('Failed')));
           return bloc;
@@ -83,7 +107,7 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should add photo to selection if not already selected',
         build: () => bloc,
-        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: []),
+        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: const []),
         act: (bloc) => bloc.add(TogglePhotoSelection(photo: testPhotos.first)),
         expect: () => [
           isA<PhotoSelectionLoaded>().having(
@@ -92,6 +116,18 @@ void main() {
             [testPhotos.first],
           )
         ],
+      );
+
+      blocTest<PhotoSelectionBloc, PhotoSelectionState>(
+        'should do nothing if photo is locked',
+        build: () => bloc,
+        seed: () => PhotoSelectionLoaded(
+          allPhotos: testPhotos,
+          selectedPhotos: [],
+          lockedPhotoIds: {'1'},
+        ),
+        act: (bloc) => bloc.add(TogglePhotoSelection(photo: testPhotos.first)),
+        expect: () => [],
       );
 
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
