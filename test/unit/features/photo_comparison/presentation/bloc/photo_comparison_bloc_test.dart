@@ -75,34 +75,31 @@ void main() {
       final photo2 = testPhotos[1];
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoComparisonLoading, DeletionConfirmation] when KeepRemainingPhotos is added',
+        'emits [DeletionConfirmation] when KeepRemainingPhotos is added',
         build: () => bloc,
         seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
         act: (bloc) => bloc.add(KeepRemainingPhotos()),
         expect: () => [
-          isA<PhotoComparisonLoading>(),
           isA<DeletionConfirmation>(),
         ],
       );
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoComparisonLoading, TournamentInProgress] when ContinueComparing is added',
+        'emits [TournamentInProgress] when ContinueComparing is added',
         build: () => bloc,
         seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
         act: (bloc) => bloc.add(ContinueComparing()),
         expect: () => [
-          isA<PhotoComparisonLoading>(),
           isA<TournamentInProgress>(),
         ],
       );
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoComparisonLoading, TournamentInProgress] and sets dontAskAgain flag when ContinueComparing(dontAskAgain: true) is added',
+        'emits [TournamentInProgress] and sets dontAskAgain flag when ContinueComparing(dontAskAgain: true) is added',
         build: () => bloc,
         seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
         act: (bloc) => bloc.add(ContinueComparing(dontAskAgain: true)),
         expect: () => [
-          isA<PhotoComparisonLoading>(),
           isA<TournamentInProgress>(),
         ],
         verify: (bloc) {

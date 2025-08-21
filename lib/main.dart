@@ -38,12 +38,9 @@ class PhotoDumperApp extends StatelessWidget {
                 as Map<String, dynamic>;
             final photos = args['photos'];
 
-            // The PhotoComparisonBloc is already in the context from MultiBlocProvider.
-            // We just need to add the LoadSelectedPhotos event to it.
-            context
-                .read<PhotoComparisonBloc>()
-                .add(LoadSelectedPhotos(photos: photos));
-
+            // The PhotoComparisonBloc is provided by MultiBlocProvider, so we just
+            // need to build the page. The page's initState will handle loading
+            // the photos into the BLoC.
             return PhotoComparisonPage(selectedPhotos: photos);
           }
         },

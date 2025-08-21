@@ -322,9 +322,7 @@ class PhotoComparisonBloc
   void _onKeepRemainingPhotos(
     KeepRemainingPhotos event,
     Emitter<PhotoComparisonState> emit,
-  ) async {
-    emit(PhotoComparisonLoading());
-    await Future.delayed(const Duration(milliseconds: 50));
+  ) {
     emit(
       DeletionConfirmation(
         eliminatedPhotos: _eliminatedPhotos,
@@ -336,11 +334,9 @@ class PhotoComparisonBloc
   void _onContinueComparing(
     ContinueComparing event,
     Emitter<PhotoComparisonState> emit,
-  ) async {
+  ) {
     _dontAskAgain = event.dontAskAgain;
     _skippedPairs.clear();
-    emit(PhotoComparisonLoading());
-    await Future.delayed(const Duration(milliseconds: 50));
     _generatePairs();
     _emitCurrentState(emit);
   }
