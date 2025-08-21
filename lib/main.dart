@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
 import 'features/photo_comparison/presentation/bloc/comparison_list_bloc.dart';
 import 'features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
+import 'core/observers/app_route_observer.dart';
 import 'features/photo_comparison/presentation/pages/photo_comparison_page.dart';
 import 'features/photo_comparison/presentation/pages/comparison_list_page.dart';
 
@@ -42,6 +43,7 @@ class PhotoDumperApp extends StatelessWidget {
       child: MaterialApp(
         title: AppConstants.appTitle,
         theme: AppTheme.lightTheme,
+        navigatorObservers: [routeObserver],
         home: const ComparisonListPage(),
         routes: {
           PhotoComparisonPage.routeName: (context) {

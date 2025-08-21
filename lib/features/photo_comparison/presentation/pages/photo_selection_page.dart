@@ -41,7 +41,7 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       body: BlocListener<PhotoSelectionBloc, PhotoSelectionState>(
         listener: (context, state) {
           if (state is ComparisonReady) {
-            Navigator.of(context).pushReplacementNamed(
+            Navigator.of(context).pushNamed(
               PhotoComparisonPage.routeName,
               arguments: {'photos': state.selectedPhotos},
             );

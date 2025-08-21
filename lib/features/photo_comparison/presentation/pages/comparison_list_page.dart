@@ -2,14 +2,37 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/di/dependency_injection.dart';
+import '../../../../core/observers/app_route_observer.dart';
 import '../bloc/comparison_list_bloc.dart';
 import 'photo_selection_page.dart';
 import '../../domain/entities/comparison_session.dart';
 import 'photo_comparison_page.dart';
 
-class ComparisonListPage extends StatelessWidget {
+class ComparisonListPage extends StatefulWidget {
   const ComparisonListPage({super.key});
+
+  @override
+  State<ComparisonListPage> createState() => _ComparisonListPageState();
+}
+
+class _ComparisonListPageState extends State<ComparisonListPage> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // This is called when the user returns to this page.
+    context.read<ComparisonListBloc>().add(LoadComparisonSessions());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +68,7 @@ class ComparisonListPage extends StatelessWidget {
                         .add(DeleteComparisonSession(session.id));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${session.id} deleted'),
+                        content: Text('"${DateFormat.yMMMMd().format(session.createdAt)}" deleted'),
                         action: SnackBarAction(
                           label: 'Undo',
                           onPressed: () {
@@ -75,9 +98,7 @@ class ComparisonListPage extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => const PhotoSelectionPage(),
             ),
-          ).then((_) {
-            context.read<ComparisonListBloc>().add(LoadComparisonSessions());
-          });
+          );
         },
         label: const Text('New Comparison'),
         icon: const Icon(Icons.add),
@@ -130,9 +151,7 @@ class ComparisonSessionCard extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => PhotoComparisonPage(sessionToResume: session),
             ),
-          ).then((_) {
-            context.read<ComparisonListBloc>().add(LoadComparisonSessions());
-          });
+          );
         },
       ),
     );
