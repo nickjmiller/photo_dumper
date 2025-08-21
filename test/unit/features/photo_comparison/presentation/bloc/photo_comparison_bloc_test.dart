@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bloc_test/bloc_test.dart';
+import 'package:dartz/dartz.dart';
 import 'dart:io';
 import 'package:mockito/mockito.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
@@ -80,14 +81,13 @@ void main() {
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
         'emits [DeletionConfirmation] when KeepRemainingPhotos is added',
-        build: () {
-          // Manually prime the bloc's internal state
+        build: () => bloc,
+        act: (bloc) {
           bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          return bloc;
+          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
+          bloc.add(KeepRemainingPhotos());
         },
-        seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
-        act: (bloc) => bloc.add(KeepRemainingPhotos()),
-        skip: 2, // a lot happens before this
+        skip: 3,
         expect: () => [
           isA<DeletionConfirmation>(),
         ],
@@ -95,13 +95,13 @@ void main() {
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
         'emits [TournamentInProgress] when ContinueComparing is added',
-        build: () {
+        build: () => bloc,
+        act: (bloc) {
           bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          return bloc;
+          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
+          bloc.add(ContinueComparing());
         },
-        seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
-        act: (bloc) => bloc.add(ContinueComparing()),
-        skip: 2,
+        skip: 3,
         expect: () => [
           isA<TournamentInProgress>(),
         ],
@@ -110,16 +110,15 @@ void main() {
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
         'emits [TournamentInProgress] and sets dontAskAgain flag when ContinueComparing(dontAskAgain: true) is added',
         build: () => bloc,
-        seed: () => AllPairsSkipped(remainingPhotos: [photo1, photo2]),
-        act: (bloc) => bloc.add(ContinueComparing(dontAskAgain: true)),
+        act: (bloc) {
+          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
+          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
+          bloc.add(ContinueComparing(dontAskAgain: true));
+        },
+        skip: 3,
         expect: () => [
           isA<TournamentInProgress>(),
         ],
-        verify: (bloc) {
-          // This is a bit tricky to test directly as _dontAskAgain is private.
-          // An indirect way would be to skip all pairs again and see if AllPairsSkipped is emitted.
-          // For now, we trust the implementation. A better way would be to expose the flag for testing.
-        },
       );
     });
 
@@ -171,10 +170,15 @@ void main() {
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
           when(mockPhotoManagerService.deleteWithIds(any)).thenAnswer((_) async => []);
+          when(mockComparisonUseCases.deleteComparisonSession(any)).thenAnswer((_) async => const Right(null));
           return bloc;
         },
-        seed: () => DeletionConfirmation(eliminatedPhotos: [photo2], winner: [photo1]),
-        act: (bloc) => bloc.add(ConfirmDeletion()),
+        act: (bloc) {
+          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
+          bloc.add(SelectWinner(winner: photo1, loser: photo2));
+          bloc.add(ConfirmDeletion());
+        },
+        skip: 3,
         expect: () => [
           isA<ComparisonComplete>(),
         ],
@@ -188,8 +192,12 @@ void main() {
               .thenThrow(Exception('Deletion failed'));
           return bloc;
         },
-        seed: () => DeletionConfirmation(eliminatedPhotos: [photo2], winner: [photo1]),
-        act: (bloc) => bloc.add(ConfirmDeletion()),
+        act: (bloc) {
+          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
+          bloc.add(SelectWinner(winner: photo1, loser: photo2));
+          bloc.add(ConfirmDeletion());
+        },
+        skip: 3,
         expect: () => [
           isA<PhotoComparisonError>(),
         ],

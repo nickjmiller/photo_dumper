@@ -11,54 +11,51 @@ class ComparisonListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => getIt<ComparisonListBloc>()..add(LoadComparisonSessions()),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My Comparisons'),
-        ),
-        body: BlocBuilder<ComparisonListBloc, ComparisonListState>(
-          builder: (context, state) {
-            if (state is ComparisonListLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is ComparisonListError) {
-              return Center(
-                child: Text('Error: ${state.message}'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Comparisons'),
+      ),
+      body: BlocBuilder<ComparisonListBloc, ComparisonListState>(
+        builder: (context, state) {
+          if (state is ComparisonListLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state is ComparisonListError) {
+            return Center(
+              child: Text('Error: ${state.message}'),
+            );
+          }
+          if (state is ComparisonListLoaded) {
+            if (state.sessions.isEmpty) {
+              return const Center(
+                child: Text('No saved comparisons. Start a new one!'),
               );
             }
-            if (state is ComparisonListLoaded) {
-              if (state.sessions.isEmpty) {
-                return const Center(
-                  child: Text('No saved comparisons. Start a new one!'),
-                );
-              }
-              return ListView.builder(
-                itemCount: state.sessions.length,
-                itemBuilder: (context, index) {
-                  final session = state.sessions[index];
-                  return ComparisonSessionCard(session: session);
-                },
-              );
-            }
-            return const Center(child: Text('Welcome!'));
-          },
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                // The selection page will need to be wrapped in its BLoC provider
-                builder: (_) => const PhotoSelectionPage(),
-              ),
-            ).then((_) {
-              // After returning from selection/comparison, refresh the list
-              context.read<ComparisonListBloc>().add(LoadComparisonSessions());
-            });
-          },
-          label: const Text('New Comparison'),
-          icon: const Icon(Icons.add),
-        ),
+            return ListView.builder(
+              itemCount: state.sessions.length,
+              itemBuilder: (context, index) {
+                final session = state.sessions[index];
+                return ComparisonSessionCard(session: session);
+              },
+            );
+          }
+          return const Center(child: Text('Welcome!'));
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              // The selection page will need to be wrapped in its BLoC provider
+              builder: (_) => const PhotoSelectionPage(),
+            ),
+          ).then((_) {
+            // After returning from selection/comparison, refresh the list
+            context.read<ComparisonListBloc>().add(LoadComparisonSessions());
+          });
+        },
+        label: const Text('New Comparison'),
+        icon: const Icon(Icons.add),
       ),
     );
   }

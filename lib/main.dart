@@ -4,6 +4,7 @@ import 'core/constants/app_constants.dart';
 import 'core/di/dependency_injection.dart';
 import 'core/theme/app_theme.dart';
 import 'features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
+import 'features/photo_comparison/presentation/bloc/comparison_list_bloc.dart';
 import 'features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
 import 'features/photo_comparison/presentation/pages/photo_comparison_page.dart';
 import 'features/photo_comparison/presentation/pages/comparison_list_page.dart';
@@ -21,6 +22,10 @@ class PhotoDumperApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(
+          create: (context) =>
+              getIt<ComparisonListBloc>()..add(LoadComparisonSessions()),
+        ),
         BlocProvider(
           create: (context) => PhotoSelectionBloc(
             photoUseCases: getIt(),
