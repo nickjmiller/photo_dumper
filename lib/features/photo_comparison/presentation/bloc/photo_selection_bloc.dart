@@ -11,7 +11,18 @@ abstract class PhotoSelectionEvent extends Equatable {
   List<Object> get props => [];
 }
 
-class PickPhotosAndCompare extends PhotoSelectionEvent {}
+class LoadPhotos extends PhotoSelectionEvent {}
+
+class TogglePhotoSelection extends PhotoSelectionEvent {
+  final Photo photo;
+
+  const TogglePhotoSelection({required this.photo});
+
+  @override
+  List<Object> get props => [photo];
+}
+
+class StartComparison extends PhotoSelectionEvent {}
 
 class ResetSelection extends PhotoSelectionEvent {}
 
@@ -26,6 +37,29 @@ abstract class PhotoSelectionState extends Equatable {
 class PhotoSelectionInitial extends PhotoSelectionState {}
 
 class PhotoSelectionLoading extends PhotoSelectionState {}
+
+class PhotoSelectionLoaded extends PhotoSelectionState {
+  final List<Photo> allPhotos;
+  final List<Photo> selectedPhotos;
+
+  const PhotoSelectionLoaded({
+    required this.allPhotos,
+    this.selectedPhotos = const [],
+  });
+
+  @override
+  List<Object> get props => [allPhotos, selectedPhotos];
+
+  PhotoSelectionLoaded copyWith({
+    List<Photo>? allPhotos,
+    List<Photo>? selectedPhotos,
+  }) {
+    return PhotoSelectionLoaded(
+      allPhotos: allPhotos ?? this.allPhotos,
+      selectedPhotos: selectedPhotos ?? this.selectedPhotos,
+    );
+  }
+}
 
 class ComparisonReady extends PhotoSelectionState {
   final List<Photo> selectedPhotos;
@@ -50,33 +84,55 @@ class PhotoSelectionBloc
   final PhotoUseCases photoUseCases;
 
   PhotoSelectionBloc({required this.photoUseCases})
-    : super(PhotoSelectionInitial()) {
-    on<PickPhotosAndCompare>(_onPickPhotosAndCompare);
+      : super(PhotoSelectionInitial()) {
+    on<LoadPhotos>(_onLoadPhotos);
+    on<TogglePhotoSelection>(_onTogglePhotoSelection);
+    on<StartComparison>(_onStartComparison);
     on<ResetSelection>(_onResetSelection);
   }
 
-  Future<void> _onPickPhotosAndCompare(
-    PickPhotosAndCompare event,
+  Future<void> _onLoadPhotos(
+    LoadPhotos event,
     Emitter<PhotoSelectionState> emit,
   ) async {
     emit(PhotoSelectionLoading());
+    final result = await photoUseCases.getPhotosFromGallery();
+    result.fold(
+      (failure) => emit(PhotoSelectionError(failure.message)),
+      (photos) => emit(PhotoSelectionLoaded(allPhotos: photos)),
+    );
+  }
 
-    final result = await photoUseCases.getLibraryPhotos();
+  void _onTogglePhotoSelection(
+    TogglePhotoSelection event,
+    Emitter<PhotoSelectionState> emit,
+  ) {
+    if (state is PhotoSelectionLoaded) {
+      final currentState = state as PhotoSelectionLoaded;
+      final newSelectedPhotos = List<Photo>.from(currentState.selectedPhotos);
 
-    result.fold((failure) => emit(PhotoSelectionError(failure.message)), (
-      photos,
-    ) {
-      if (photos.isEmpty) {
-        // No photos selected or invalid selection (less than 2 photos)
-        emit(const PhotoSelectionError('Please select at least 2 photos'));
-      } else if (photos.length >= 2) {
-        // Valid selection - proceed to comparison
-        emit(ComparisonReady(selectedPhotos: photos));
+      if (newSelectedPhotos.contains(event.photo)) {
+        newSelectedPhotos.remove(event.photo);
       } else {
-        // This should not happen due to repository logic, but handle just in case
+        newSelectedPhotos.add(event.photo);
+      }
+
+      emit(currentState.copyWith(selectedPhotos: newSelectedPhotos));
+    }
+  }
+
+  void _onStartComparison(
+    StartComparison event,
+    Emitter<PhotoSelectionState> emit,
+  ) {
+    if (state is PhotoSelectionLoaded) {
+      final currentState = state as PhotoSelectionLoaded;
+      if (currentState.selectedPhotos.length >= 2) {
+        emit(ComparisonReady(selectedPhotos: currentState.selectedPhotos));
+      } else {
         emit(const PhotoSelectionError('Please select at least 2 photos'));
       }
-    });
+    }
   }
 
   void _onResetSelection(

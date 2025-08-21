@@ -3,165 +3,130 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/photo_selection_page.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
-import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:dartz/dartz.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
-import 'package:photo_dumper/core/error/failures.dart';
-import 'package:get_it/get_it.dart';
+import 'dart:io';
+import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart';
+import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
+import 'package:photo_dumper/features/photo_comparison/presentation/pages/photo_comparison_page.dart';
+import 'package:photo_dumper/core/services/platform_service.dart';
+import 'package:photo_dumper/features/photo_comparison/domain/services/photo_manager_service.dart';
+import 'package:photo_dumper/features/photo_comparison/presentation/widgets/photo_card.dart';
 
 import 'photo_comparison_flow_test.mocks.dart';
 
-@GenerateMocks([PhotoUseCases])
+@GenerateMocks([PhotoUseCases, PhotoManagerService, PlatformService])
 void main() {
-  group('Photo Selection Flow Tests', () {
-    late MockPhotoUseCases mockPhotoUseCases;
-    late GetIt getIt;
+  late MockPhotoUseCases mockPhotoUseCases;
+  late MockPhotoManagerService mockPhotoManagerService;
+  late MockPlatformService mockPlatformService;
 
-    setUp(() {
-      mockPhotoUseCases = MockPhotoUseCases();
-      getIt = GetIt.instance;
+  final testPhotos = List.generate(
+    3, // Use 3 photos for a 2-round tournament
+    (i) => Photo(
+      id: 'id_$i',
+      name: 'photo_$i.jpg',
+      createdAt: DateTime.now(),
+      file: File('test/path/photo_$i.jpg'),
+    ),
+  );
 
-      // Clear any existing registrations
-      if (getIt.isRegistered<PhotoUseCases>()) {
-        getIt.unregister<PhotoUseCases>();
-      }
+  setUp(() {
+    mockPhotoUseCases = MockPhotoUseCases();
+    mockPhotoManagerService = MockPhotoManagerService();
+    mockPlatformService = MockPlatformService();
 
-      // Register the mock
-      getIt.registerLazySingleton<PhotoUseCases>(() => mockPhotoUseCases);
-    });
+    // Stub the successful photo fetch on the use cases
+    when(mockPhotoUseCases.getPhotosFromGallery())
+        .thenAnswer((_) async => Right(testPhotos));
 
-    tearDown(() {
-      // Clean up registrations
-      if (getIt.isRegistered<PhotoUseCases>()) {
-        getIt.unregister<PhotoUseCases>();
-      }
-    });
+    // Stub the services needed by PhotoComparisonBloc
+    when(mockPlatformService.isAndroid).thenReturn(false);
+    when(mockPhotoManagerService.deleteWithIds(any))
+        .thenAnswer((_) async => []);
+  });
 
-    testWidgets('should display photo selection page with select button', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider(
-            create: (context) =>
-                PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
-            child: const PhotoSelectionPage(),
+  testWidgets('Full photo comparison and deletion flow', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<PhotoSelectionBloc>(
+            create: (_) => PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
           ),
+          BlocProvider<PhotoComparisonBloc>(
+            create: (_) => PhotoComparisonBloc(
+              photoUseCases: mockPhotoUseCases,
+              photoManagerService: mockPhotoManagerService,
+              platformService: mockPlatformService,
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          home: const PhotoSelectionPage(),
+          routes: {
+            PhotoComparisonPage.routeName: (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final photos = args['photos'] as List<Photo>;
+
+              context.read<PhotoComparisonBloc>().add(LoadSelectedPhotos(photos: photos));
+
+              return PhotoComparisonPage(selectedPhotos: photos);
+            }
+          },
         ),
-      );
+      ),
+    );
 
-      // Check for the body text specifically (not AppBar title)
-      expect(
-        find.text('Select photos to compare and organize'),
-        findsOneWidget,
-      );
-      expect(find.text('Select Photos'), findsOneWidget);
-      // The text check above should be sufficient to verify the button exists
-    });
+    // 1. Wait for photos to load and verify they are displayed
+    await tester.pumpAndSettle();
+    expect(find.byType(GridView), findsOneWidget);
+    expect(find.byKey(const Key('photo_thumbnail_id_0')), findsOneWidget);
 
-    testWidgets('should show loading indicator when picking photos', (
-      WidgetTester tester,
-    ) async {
-      // Setup mock to return a delayed response
-      when(mockPhotoUseCases.getLibraryPhotos()).thenAnswer((_) async {
-        await Future.delayed(const Duration(milliseconds: 100));
-        return Right([
-          Photo(
-            id: '1',
-            name: 'photo1.jpg',
-            imagePath: '/path/to/photo1.jpg',
-            thumbnailPath: '/path/to/photo1.jpg',
-            createdAt: DateTime.now(),
-          ),
-          Photo(
-            id: '2',
-            name: 'photo2.jpg',
-            imagePath: '/path/to/photo2.jpg',
-            thumbnailPath: '/path/to/photo2.jpg',
-            createdAt: DateTime.now(),
-          ),
-        ]);
-      });
+    // 2. Select all 3 photos
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_2')));
+    await tester.pump();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider(
-            create: (context) =>
-                PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
-            child: const PhotoSelectionPage(),
-          ),
-        ),
-      );
+    // Verify selection count is updated on the button
+    expect(find.text('Compare (3)'), findsOneWidget);
 
-      // Tap the select photos button
-      await tester.tap(find.text('Select Photos'));
-      await tester.pump();
+    // 3. Start comparison
+    await tester.tap(find.text('Compare (3)'));
+    await tester.pumpAndSettle();
 
-      // Should show loading indicator
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // 4. We are now on the PhotoComparisonPage. Verify it.
+    expect(find.byType(PhotoComparisonPage), findsOneWidget);
+    expect(find.byType(PhotoCard), findsNWidgets(2));
 
-      // Wait for the async operation to complete
-      await tester.pump(const Duration(milliseconds: 150));
-    });
+    // 5. Complete the tournament. With 3 photos, this takes 2 rounds.
+    // Round 1: Tap the first PhotoCard to select it as the winner.
+    await tester.tap(find.byType(PhotoCard).first);
+    await tester.pumpAndSettle();
 
-    testWidgets('should show error when photo picking fails', (
-      WidgetTester tester,
-    ) async {
-      when(
-        mockPhotoUseCases.getLibraryPhotos(),
-      ).thenAnswer((_) async => Left(ServerFailure('Failed to load photos')));
+    // Round 2: A new pair is shown. Tap the first PhotoCard again.
+    await tester.tap(find.byType(PhotoCard).first);
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider(
-            create: (context) =>
-                PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
-            child: const PhotoSelectionPage(),
-          ),
-        ),
-      );
+    // 6. Deletion confirmation screen should be visible
+    expect(find.text('Review Photos for Deletion'), findsOneWidget);
+    expect(find.text('Confirm Delete'), findsOneWidget);
 
-      // Tap the select photos button
-      await tester.tap(find.text('Select Photos'));
-      await tester.pump();
+    // 7. Confirm deletion
+    await tester.tap(find.text('Confirm Delete'));
+    await tester.pumpAndSettle();
 
-      // Wait for the error to be shown
-      await tester.pump(const Duration(milliseconds: 100));
+    // 8. Verify completion screen
+    expect(find.text('Comparison Complete!'), findsOneWidget);
 
-      // Should show error snackbar
-      expect(find.text('Failed to load photos'), findsOneWidget);
-    });
-
-    testWidgets('should show error when less than 2 photos are selected', (
-      WidgetTester tester,
-    ) async {
-      when(mockPhotoUseCases.getLibraryPhotos()).thenAnswer(
-        (_) async => Right(
-          [],
-        ), // Repository now returns empty list for invalid selection
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider(
-            create: (context) =>
-                PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
-            child: const PhotoSelectionPage(),
-          ),
-        ),
-      );
-
-      // Tap the select photos button
-      await tester.tap(find.text('Select Photos'));
-      await tester.pump();
-
-      // Wait for the error to be shown
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Should show error snackbar
-      expect(find.text('Please select at least 2 photos'), findsOneWidget);
-    });
+    // 9. Verify that the delete method was called on the service
+    final verificationResult = verify(mockPhotoManagerService.deleteWithIds(captureAny));
+    verificationResult.called(1);
+    final capturedIds = verificationResult.captured.single as List<String>;
+    expect(capturedIds.length, 2);
   });
 }

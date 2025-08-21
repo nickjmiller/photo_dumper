@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/constants/app_constants.dart';
 import 'core/di/dependency_injection.dart';
 import 'core/theme/app_theme.dart';
+import 'features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
 import 'features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
+import 'features/photo_comparison/presentation/pages/photo_comparison_page.dart';
 import 'features/photo_comparison/presentation/pages/photo_selection_page.dart';
 
 void main() async {
@@ -17,12 +19,34 @@ class PhotoDumperApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appTitle,
-      theme: AppTheme.lightTheme,
-      home: BlocProvider(
-        create: (context) => PhotoSelectionBloc(photoUseCases: getIt()),
-        child: const PhotoSelectionPage(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) => PhotoSelectionBloc(photoUseCases: getIt()),
+        ),
+        BlocProvider(
+          create: (context) => PhotoComparisonBloc(photoUseCases: getIt()),
+        ),
+      ],
+      child: MaterialApp(
+        title: AppConstants.appTitle,
+        theme: AppTheme.lightTheme,
+        home: const PhotoSelectionPage(),
+        routes: {
+          PhotoComparisonPage.routeName: (context) {
+            final args = ModalRoute.of(context)!.settings.arguments
+                as Map<String, dynamic>;
+            final photos = args['photos'];
+
+            // The PhotoComparisonBloc is already in the context from MultiBlocProvider.
+            // We just need to add the LoadSelectedPhotos event to it.
+            context
+                .read<PhotoComparisonBloc>()
+                .add(LoadSelectedPhotos(photos: photos));
+
+            return PhotoComparisonPage(selectedPhotos: photos);
+          }
+        },
       ),
     );
   }

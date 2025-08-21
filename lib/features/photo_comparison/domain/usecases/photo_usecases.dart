@@ -8,7 +8,7 @@ class PhotoUseCases {
 
   PhotoUseCases(this.repository);
 
-  Future<Either<Failure, List<Photo>>> getLibraryPhotos() async {
-    return await repository.getLibraryPhotos();
+  Future<Either<Failure, List<Photo>>> getPhotosFromGallery() async {
+    return await repository.getPhotosFromGallery();
   }
 }

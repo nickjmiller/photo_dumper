@@ -2,10 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/data/datasources/photo_library_datasource.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
+import 'package:dartz/dartz.dart';
+import 'package:photo_dumper/core/error/failures.dart';
 
 class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   @override
-  Future<List<Photo>> getLibraryPhotos() async {
+  Future<List<Photo>> getPhotosFromGallery() async {
     return [
       Photo(
         id: '1',
@@ -25,61 +27,12 @@ class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   @override
   Future<bool> requestPhotoPermission() async {
     return true;
-  }
-
-  @override
-  Future<List<Photo>> pickMultiplePhotos() async {
-    return [
-      Photo(
-        id: '1',
-        name: 'Test Photo 1',
-        imagePath: '/test/path/1.jpg',
-        createdAt: DateTime.now(),
-      ),
-      Photo(
-        id: '2',
-        name: 'Test Photo 2',
-        imagePath: '/test/path/2.jpg',
-        createdAt: DateTime.now(),
-      ),
-    ];
-  }
-}
-
-class MockPhotoLibraryDataSourceSinglePhoto implements PhotoLibraryDataSource {
-  @override
-  Future<List<Photo>> getLibraryPhotos() async {
-    return [
-      Photo(
-        id: '1',
-        name: 'Test Photo 1',
-        imagePath: '/test/path/1.jpg',
-        createdAt: DateTime.now(),
-      ),
-    ];
-  }
-
-  @override
-  Future<bool> requestPhotoPermission() async {
-    return true;
-  }
-
-  @override
-  Future<List<Photo>> pickMultiplePhotos() async {
-    return [
-      Photo(
-        id: '1',
-        name: 'Test Photo 1',
-        imagePath: '/test/path/1.jpg',
-        createdAt: DateTime.now(),
-      ),
-    ];
   }
 }
 
 class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
   @override
-  Future<List<Photo>> getLibraryPhotos() async {
+  Future<List<Photo>> getPhotosFromGallery() async {
     return [];
   }
 
@@ -87,10 +40,17 @@ class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
   Future<bool> requestPhotoPermission() async {
     return true;
   }
+}
+
+class MockPhotoLibraryDataSourceThrowsException implements PhotoLibraryDataSource {
+  @override
+  Future<List<Photo>> getPhotosFromGallery() async {
+    throw Exception('Test Exception');
+  }
 
   @override
-  Future<List<Photo>> pickMultiplePhotos() async {
-    return [];
+  Future<bool> requestPhotoPermission() async {
+    return true;
   }
 }
 
@@ -98,62 +58,55 @@ void main() {
   group('PhotoRepositoryImpl', () {
     late PhotoRepositoryImpl repository;
     late MockPhotoLibraryDataSource mockDataSource;
+    late MockPhotoLibraryDataSourceEmpty mockDataSourceEmpty;
+    late MockPhotoLibraryDataSourceThrowsException mockDataSourceThrows;
 
     setUp(() {
       mockDataSource = MockPhotoLibraryDataSource();
-      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSource);
+      mockDataSourceEmpty = MockPhotoLibraryDataSourceEmpty();
+      mockDataSourceThrows = MockPhotoLibraryDataSourceThrowsException();
     });
 
-    test('should load library photos and store them', () async {
-      final result = await repository.getLibraryPhotos();
+    test('should return list of photos when data source call is successful', () async {
+      // Arrange
+      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSource);
 
+      // Act
+      final result = await repository.getPhotosFromGallery();
+
+      // Assert
       expect(result.isRight(), true);
       final photos = result.getOrElse(() => []);
       expect(photos.length, 2);
       expect(photos[0].id, '1');
-      expect(photos[1].id, '2');
     });
 
-    test('should add more photos to existing library', () async {
-      // First load
-      await repository.getLibraryPhotos();
+    test('should return empty list when data source returns empty list', () async {
+      // Arrange
+      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSourceEmpty);
 
-      // Add more photos (mock will return same photos, but in real app would be different)
-      final result = await repository.getLibraryPhotos();
+      // Act
+      final result = await repository.getPhotosFromGallery();
 
+      // Assert
       expect(result.isRight(), true);
       final photos = result.getOrElse(() => []);
-      expect(
-        photos.length,
-        2,
-      ); // Library is cleared and new photos are added (2 photos)
+      expect(photos.isEmpty, true);
     });
 
-    test('should return empty list when only one photo is selected', () async {
-      final singlePhotoRepository = PhotoRepositoryImpl(
-        photoLibraryDataSource: MockPhotoLibraryDataSourceSinglePhoto(),
+    test('should return a failure when data source throws an exception', () async {
+      // Arrange
+      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSourceThrows);
+
+      // Act
+      final result = await repository.getPhotosFromGallery();
+
+      // Assert
+      expect(result.isLeft(), true);
+      result.fold(
+        (failure) => expect(failure, isA<ServerFailure>()),
+        (photos) => fail('should not return photos'),
       );
-
-      final result = await singlePhotoRepository.getLibraryPhotos();
-
-      expect(result.isRight(), true);
-      final photos = result.getOrElse(() => []);
-      expect(
-        photos.length,
-        0,
-      ); // Should return empty list for invalid selection
-    });
-
-    test('should return empty list when no photos are selected', () async {
-      final emptyPhotoRepository = PhotoRepositoryImpl(
-        photoLibraryDataSource: MockPhotoLibraryDataSourceEmpty(),
-      );
-
-      final result = await emptyPhotoRepository.getLibraryPhotos();
-
-      expect(result.isRight(), true);
-      final photos = result.getOrElse(() => []);
-      expect(photos.length, 0); // Should return empty list for no selection
     });
   });
 }

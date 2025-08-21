@@ -9,6 +9,7 @@ class PhotoCard extends StatelessWidget {
   final GestureDragStartCallback? onHorizontalDragStart;
   final GestureDragUpdateCallback? onHorizontalDragUpdate;
   final GestureDragEndCallback? onHorizontalDragEnd;
+  final VoidCallback? onTap;
 
   const PhotoCard({
     super.key,
@@ -18,6 +19,7 @@ class PhotoCard extends StatelessWidget {
     this.onHorizontalDragStart,
     this.onHorizontalDragUpdate,
     this.onHorizontalDragEnd,
+    this.onTap,
   });
 
   @override
@@ -26,6 +28,7 @@ class PhotoCard extends StatelessWidget {
       onHorizontalDragStart: onHorizontalDragStart,
       onHorizontalDragUpdate: onHorizontalDragUpdate,
       onHorizontalDragEnd: onHorizontalDragEnd,
+      onTap: onTap,
       child: SlideTransition(
         position: animation,
         child: Transform.translate(
