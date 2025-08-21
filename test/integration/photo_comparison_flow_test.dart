@@ -86,16 +86,8 @@ void main() {
               ..add(LoadComparisonSessions()),
           ),
         ],
-        child: MaterialApp(
-          home: const ComparisonListPage(), // Start at the new home page
-          routes: {
-            PhotoComparisonPage.routeName: (context) {
-              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-              final photos = args['photos'] as List<Photo>;
-              context.read<PhotoComparisonBloc>().add(LoadSelectedPhotos(photos: photos));
-              return PhotoComparisonPage(selectedPhotos: photos);
-            }
-          },
+        child: const MaterialApp(
+          home: ComparisonListPage(), // Start at the new home page
         ),
       ),
     );

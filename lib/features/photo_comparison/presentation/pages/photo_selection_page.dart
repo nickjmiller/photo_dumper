@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../domain/entities/photo.dart';
 import '../bloc/photo_selection_bloc.dart';
 import '../widgets/selectable_photo_card.dart';
 import 'photo_comparison_page.dart';
@@ -23,8 +24,14 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
     context.read<PhotoSelectionBloc>().add(TogglePhotoSelection(photo: photo));
   }
 
-  void _startComparison() {
-    context.read<PhotoSelectionBloc>().add(StartComparison());
+  void _startComparison(List<Photo> selectedPhotos) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PhotoComparisonPage(selectedPhotos: selectedPhotos),
+      ),
+    ).then((_) {
+      context.read<PhotoSelectionBloc>().add(LoadPhotos());
+    });
   }
 
   @override
@@ -40,12 +47,7 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       ),
       body: BlocListener<PhotoSelectionBloc, PhotoSelectionState>(
         listener: (context, state) {
-          if (state is ComparisonReady) {
-            Navigator.of(context).pushNamed(
-              PhotoComparisonPage.routeName,
-              arguments: {'photos': state.selectedPhotos},
-            );
-          } else if (state is PhotoSelectionError) {
+          if (state is PhotoSelectionError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -121,7 +123,7 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
         builder: (context, state) {
           if (state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2) {
             return FloatingActionButton.extended(
-              onPressed: _startComparison,
+              onPressed: () => _startComparison(state.selectedPhotos),
               label: Text('Compare (${state.selectedPhotos.length})'),
               icon: const Icon(Icons.compare_arrows),
             );
