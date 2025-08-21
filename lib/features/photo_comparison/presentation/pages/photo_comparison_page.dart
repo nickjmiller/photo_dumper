@@ -48,12 +48,12 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
     _initializeAnimations();
     if (widget.sessionToResume != null) {
       context.read<PhotoComparisonBloc>().add(
-            ResumeComparison(session: widget.sessionToResume!),
-          );
+        ResumeComparison(session: widget.sessionToResume!),
+      );
     } else {
       context.read<PhotoComparisonBloc>().add(
-            LoadSelectedPhotos(photos: widget.selectedPhotos!),
-          );
+        LoadSelectedPhotos(photos: widget.selectedPhotos!),
+      );
     }
   }
 
@@ -309,15 +309,17 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
               barrierDismissible: false,
               builder: (_) => BlocProvider.value(
                 value: context.read<PhotoComparisonBloc>(),
-                child:
-                    AllPairsSkippedDialog(remainingPhotos: state.remainingPhotos),
+                child: AllPairsSkippedDialog(
+                  remainingPhotos: state.remainingPhotos,
+                ),
               ),
             );
           }
         },
         child: BlocBuilder<PhotoComparisonBloc, PhotoComparisonState>(
           builder: (context, state) {
-            if (state is PhotoComparisonLoading || state is PhotoComparisonPaused) {
+            if (state is PhotoComparisonLoading ||
+                state is PhotoComparisonPaused) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -387,7 +389,9 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                           Expanded(
                             flex: 1,
                             child: PhotoCard(
-                              key: Key('comparison_photo_1_${currentPhoto1.id}'),
+                              key: Key(
+                                'comparison_photo_1_${currentPhoto1.id}',
+                              ),
                               photo: currentPhoto1,
                               animation: _photo1Animation,
                               dragOffset: _photo1DragOffset,
@@ -427,7 +431,9 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                           Expanded(
                             flex: 1,
                             child: PhotoCard(
-                              key: Key('comparison_photo_2_${currentPhoto2.id}'),
+                              key: Key(
+                                'comparison_photo_2_${currentPhoto2.id}',
+                              ),
                               photo: currentPhoto2,
                               animation: _photo2Animation,
                               dragOffset: _photo2DragOffset,

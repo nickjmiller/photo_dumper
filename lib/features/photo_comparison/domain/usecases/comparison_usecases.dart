@@ -17,7 +17,9 @@ class ComparisonUseCases {
     return repository.getComparisonSession(id);
   }
 
-  Future<Either<Failure, void>> saveComparisonSession(ComparisonSession session) {
+  Future<Either<Failure, void>> saveComparisonSession(
+    ComparisonSession session,
+  ) {
     return repository.saveComparisonSession(session);
   }
 

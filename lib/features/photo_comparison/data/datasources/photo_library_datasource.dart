@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:photo_manager/photo_manager.dart';
 import '../../domain/entities/photo.dart';
 
@@ -36,6 +35,7 @@ class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
       throw Exception('Failed to get photos by IDs: $e');
     }
   }
+
   @override
   Future<bool> requestPhotoPermission() async {
     final ps = await PhotoManager.requestPermissionExtend();
@@ -62,7 +62,8 @@ class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
       // we just use the first path. This is typically the "Recents" or "All Photos" album.
       final List<AssetEntity> assets = await paths.first.getAssetListPaged(
         page: 0,
-        size: 5000, // A large number to fetch a substantial amount of recent photos
+        size:
+            5000, // A large number to fetch a substantial amount of recent photos
       );
 
       final List<Photo> photos = [];

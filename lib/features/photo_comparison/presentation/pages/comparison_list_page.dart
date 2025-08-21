@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -15,7 +14,8 @@ class ComparisonListPage extends StatefulWidget {
   State<ComparisonListPage> createState() => _ComparisonListPageState();
 }
 
-class _ComparisonListPageState extends State<ComparisonListPage> with RouteAware {
+class _ComparisonListPageState extends State<ComparisonListPage>
+    with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -37,18 +37,14 @@ class _ComparisonListPageState extends State<ComparisonListPage> with RouteAware
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Comparisons'),
-      ),
+      appBar: AppBar(title: const Text('My Comparisons')),
       body: BlocBuilder<ComparisonListBloc, ComparisonListState>(
         builder: (context, state) {
           if (state is ComparisonListLoading) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is ComparisonListError) {
-            return Center(
-              child: Text('Error: ${state.message}'),
-            );
+            return Center(child: Text('Error: ${state.message}'));
           }
           if (state is ComparisonListLoaded) {
             if (state.sessions.isEmpty) {
@@ -63,12 +59,14 @@ class _ComparisonListPageState extends State<ComparisonListPage> with RouteAware
                 return Dismissible(
                   key: Key(session.id),
                   onDismissed: (direction) {
-                    context
-                        .read<ComparisonListBloc>()
-                        .add(DeleteComparisonSession(session.id));
+                    context.read<ComparisonListBloc>().add(
+                      DeleteComparisonSession(session.id),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('"${DateFormat.yMMMMd().format(session.createdAt)}" deleted'),
+                        content: Text(
+                          '"${DateFormat.yMMMMd().format(session.createdAt)}" deleted',
+                        ),
                         action: SnackBarAction(
                           label: 'Undo',
                           onPressed: () {
@@ -94,11 +92,9 @@ class _ComparisonListPageState extends State<ComparisonListPage> with RouteAware
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const PhotoSelectionPage(),
-            ),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const PhotoSelectionPage()));
         },
         label: const Text('New Comparison'),
         icon: const Icon(Icons.add),
@@ -144,7 +140,8 @@ class ComparisonSessionCard extends StatelessWidget {
         ),
         title: Text(title),
         subtitle: Text(
-            '${session.remainingPhotos.length} of ${session.allPhotos.length} photos left'),
+          '${session.remainingPhotos.length} of ${session.allPhotos.length} photos left',
+        ),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
           Navigator.of(context).push(

@@ -25,11 +25,14 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
   }
 
   void _startComparison(List<Photo> selectedPhotos) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => PhotoComparisonPage(selectedPhotos: selectedPhotos),
-      ),
-    ).then((_) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => PhotoComparisonPage(selectedPhotos: selectedPhotos),
+          ),
+        )
+        .then((_) {
+      if (!mounted) return;
       context.read<PhotoSelectionBloc>().add(LoadPhotos());
     });
   }
@@ -64,7 +67,8 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
         },
         child: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
           builder: (context, state) {
-            if (state is PhotoSelectionLoading || state is PhotoSelectionInitial) {
+            if (state is PhotoSelectionLoading ||
+                state is PhotoSelectionInitial) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -96,7 +100,11 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(state.message, textAlign: TextAlign.center),
@@ -106,7 +114,7 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                         context.read<PhotoSelectionBloc>().add(LoadPhotos());
                       },
                       child: const Text('Retry'),
-                    )
+                    ),
                   ],
                 ),
               );
@@ -120,17 +128,18 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       ),
       floatingActionButton:
           BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
-        builder: (context, state) {
-          if (state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2) {
-            return FloatingActionButton.extended(
-              onPressed: () => _startComparison(state.selectedPhotos),
-              label: Text('Compare (${state.selectedPhotos.length})'),
-              icon: const Icon(Icons.compare_arrows),
-            );
-          }
-          return const SizedBox.shrink();
-        },
-      ),
+            builder: (context, state) {
+              if (state is PhotoSelectionLoaded &&
+                  state.selectedPhotos.length >= 2) {
+                return FloatingActionButton.extended(
+                  onPressed: () => _startComparison(state.selectedPhotos),
+                  label: Text('Compare (${state.selectedPhotos.length})'),
+                  icon: const Icon(Icons.compare_arrows),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
     );
   }
 }

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/comparison_session.dart';
 import '../../domain/usecases/comparison_usecases.dart';
 
-
 // --- EVENTS ---
 abstract class ComparisonListEvent extends Equatable {
   const ComparisonListEvent();
@@ -47,10 +46,12 @@ class ComparisonListError extends ComparisonListState {
 }
 
 // --- BLOC ---
-class ComparisonListBloc extends Bloc<ComparisonListEvent, ComparisonListState> {
+class ComparisonListBloc
+    extends Bloc<ComparisonListEvent, ComparisonListState> {
   final ComparisonUseCases useCases;
 
-  ComparisonListBloc({required this.useCases}) : super(ComparisonListInitial()) {
+  ComparisonListBloc({required this.useCases})
+    : super(ComparisonListInitial()) {
     on<LoadComparisonSessions>(_onLoadComparisonSessions);
     on<DeleteComparisonSession>(_onDeleteComparisonSession);
   }
@@ -61,17 +62,23 @@ class ComparisonListBloc extends Bloc<ComparisonListEvent, ComparisonListState> 
   ) async {
     emit(ComparisonListLoading());
     final failureOrSessions = await useCases.getComparisonSessions();
-    emit(failureOrSessions.fold(
-      (failure) => ComparisonListError('Failed to load sessions'), // Simplified error message
-      (sessions) => ComparisonListLoaded(sessions),
-    ));
+    emit(
+      failureOrSessions.fold(
+        (failure) => ComparisonListError(
+          'Failed to load sessions',
+        ), // Simplified error message
+        (sessions) => ComparisonListLoaded(sessions),
+      ),
+    );
   }
 
   Future<void> _onDeleteComparisonSession(
     DeleteComparisonSession event,
     Emitter<ComparisonListState> emit,
   ) async {
-    final failureOrVoid = await useCases.deleteComparisonSession(event.sessionId);
+    final failureOrVoid = await useCases.deleteComparisonSession(
+      event.sessionId,
+    );
     if (failureOrVoid.isLeft()) {
       // Optionally emit an error state or handle it silently.
       // For now, reloading the list will show the user it wasn't deleted.

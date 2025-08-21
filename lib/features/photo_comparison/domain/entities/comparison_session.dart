@@ -19,10 +19,10 @@ class ComparisonSession extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        allPhotos,
-        remainingPhotos,
-        eliminatedPhotos,
-        createdAt,
-      ];
+    id,
+    allPhotos,
+    remainingPhotos,
+    eliminatedPhotos,
+    createdAt,
+  ];
 }

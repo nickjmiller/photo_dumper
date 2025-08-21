@@ -16,12 +16,7 @@ class ComparisonSessionModel extends Equatable {
   });
 
   @override
-  List<Object?> get props => [
-        id,
-        allPhotoIds,
-        eliminatedPhotoIds,
-        createdAt,
-      ];
+  List<Object?> get props => [id, allPhotoIds, eliminatedPhotoIds, createdAt];
 
   Map<String, dynamic> toMap() {
     return {
@@ -36,7 +31,9 @@ class ComparisonSessionModel extends Equatable {
     return ComparisonSessionModel(
       id: map['id'],
       allPhotoIds: List<String>.from(jsonDecode(map['allPhotoIds'])),
-      eliminatedPhotoIds: List<String>.from(jsonDecode(map['eliminatedPhotoIds'])),
+      eliminatedPhotoIds: List<String>.from(
+        jsonDecode(map['eliminatedPhotoIds']),
+      ),
       createdAt: DateTime.parse(map['createdAt']),
     );
   }

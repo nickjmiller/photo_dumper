@@ -20,7 +20,12 @@ import 'package:photo_dumper/features/photo_comparison/domain/usecases/compariso
 
 import 'photo_comparison_flow_test.mocks.dart';
 
-@GenerateMocks([PhotoUseCases, PhotoManagerService, PlatformService, ComparisonUseCases])
+@GenerateMocks([
+  PhotoUseCases,
+  PhotoManagerService,
+  PlatformService,
+  ComparisonUseCases,
+])
 void main() {
   late MockPhotoUseCases mockPhotoUseCases;
   late MockComparisonUseCases mockComparisonUseCases;
@@ -44,25 +49,32 @@ void main() {
     mockPlatformService = MockPlatformService();
 
     // Stub the successful photo fetch on the use cases
-    when(mockPhotoUseCases.getPhotosFromGallery())
-        .thenAnswer((_) async => Right(testPhotos));
-    when(mockComparisonUseCases.getAllPhotoIdsInUse())
-        .thenAnswer((_) async => const Right([]));
+    when(
+      mockPhotoUseCases.getPhotosFromGallery(),
+    ).thenAnswer((_) async => Right(testPhotos));
+    when(
+      mockComparisonUseCases.getAllPhotoIdsInUse(),
+    ).thenAnswer((_) async => const Right([]));
 
     // Stub the services needed by PhotoComparisonBloc
     when(mockPlatformService.isAndroid).thenReturn(false);
-    when(mockPhotoManagerService.deleteWithIds(any))
-        .thenAnswer((_) async => []);
+    when(
+      mockPhotoManagerService.deleteWithIds(any),
+    ).thenAnswer((_) async => []);
 
     // TODO: Integration tests are disabled because the UI flow has changed significantly
-    when(mockComparisonUseCases.getComparisonSessions())
-        .thenAnswer((_) async => const Right([]));
+    when(
+      mockComparisonUseCases.getComparisonSessions(),
+    ).thenAnswer((_) async => const Right([]));
   });
 
-  testWidgets('Full photo comparison and deletion flow', (WidgetTester tester) async {
+  testWidgets('Full photo comparison and deletion flow', (
+    WidgetTester tester,
+  ) async {
     // Stub getComparisonSessions for this test to ensure a clean slate
-    when(mockComparisonUseCases.getComparisonSessions())
-        .thenAnswer((_) async => const Right([]));
+    when(
+      mockComparisonUseCases.getComparisonSessions(),
+    ).thenAnswer((_) async => const Right([]));
 
     await tester.pumpWidget(
       MultiBlocProvider(
@@ -82,8 +94,9 @@ void main() {
             ),
           ),
           BlocProvider<ComparisonListBloc>(
-            create: (_) => ComparisonListBloc(useCases: mockComparisonUseCases)
-              ..add(LoadComparisonSessions()),
+            create: (_) =>
+                ComparisonListBloc(useCases: mockComparisonUseCases)
+                  ..add(LoadComparisonSessions()),
           ),
         ],
         child: const MaterialApp(
@@ -146,7 +159,9 @@ void main() {
     expect(find.text('Comparison Complete!'), findsOneWidget);
 
     // 11. Verify that the delete method was called on the service
-    final verificationResult = verify(mockPhotoManagerService.deleteWithIds(captureAny));
+    final verificationResult = verify(
+      mockPhotoManagerService.deleteWithIds(captureAny),
+    );
     verificationResult.called(1);
     final capturedIds = verificationResult.captured.single as List<String>;
     expect(capturedIds.length, 2);

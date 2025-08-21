@@ -121,10 +121,12 @@ class PhotoSelectionBloc
     final lockedIds = lockedIdsResult.getOrElse(() => []);
     final photos = photosResult.getOrElse(() => []);
 
-    emit(PhotoSelectionLoaded(
-      allPhotos: photos,
-      lockedPhotoIds: lockedIds.toSet(),
-    ));
+    emit(
+      PhotoSelectionLoaded(
+        allPhotos: photos,
+        lockedPhotoIds: lockedIds.toSet(),
+      ),
+    );
   }
 
   void _onTogglePhotoSelection(

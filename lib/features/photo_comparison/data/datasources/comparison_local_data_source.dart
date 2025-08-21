@@ -3,7 +3,6 @@ import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/database_helper.dart';
 import '../models/comparison_session_model.dart';
 
-
 abstract class ComparisonLocalDataSource {
   Future<void> saveComparison(ComparisonSessionModel session);
   Future<ComparisonSessionModel?> getComparison(String id);
@@ -45,7 +44,10 @@ class ComparisonLocalDataSourceImpl implements ComparisonLocalDataSource {
   @override
   Future<List<ComparisonSessionModel>> getAllComparisons() async {
     final db = await dbHelper.database;
-    final maps = await db.query(DatabaseHelper.table, orderBy: '${DatabaseHelper.columnCreatedAt} DESC');
+    final maps = await db.query(
+      DatabaseHelper.table,
+      orderBy: '${DatabaseHelper.columnCreatedAt} DESC',
+    );
     return maps.map((map) => ComparisonSessionModel.fromMap(map)).toList();
   }
 

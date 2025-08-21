@@ -47,15 +47,16 @@ class PhotoDumperApp extends StatelessWidget {
         home: const ComparisonListPage(),
         routes: {
           PhotoComparisonPage.routeName: (context) {
-            final args = ModalRoute.of(context)!.settings.arguments
-                as Map<String, dynamic>;
+            final args =
+                ModalRoute.of(context)!.settings.arguments
+                    as Map<String, dynamic>;
             final photos = args['photos'];
 
             // The PhotoComparisonBloc is provided by MultiBlocProvider, so we just
             // need to build the page. The page's initState will handle loading
             // the photos into the BLoC.
             return PhotoComparisonPage(selectedPhotos: photos);
-          }
+          },
         },
       ),
     );

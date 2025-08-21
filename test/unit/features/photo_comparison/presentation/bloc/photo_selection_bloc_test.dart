@@ -55,10 +55,12 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionLoaded] when photos are loaded successfully',
         build: () {
-          when(mockComparisonUseCases.getAllPhotoIdsInUse())
-              .thenAnswer((_) async => const Right([]));
-          when(mockPhotoUseCases.getPhotosFromGallery())
-              .thenAnswer((_) async => Right(testPhotos));
+          when(
+            mockComparisonUseCases.getAllPhotoIdsInUse(),
+          ).thenAnswer((_) async => const Right([]));
+          when(
+            mockPhotoUseCases.getPhotosFromGallery(),
+          ).thenAnswer((_) async => Right(testPhotos));
           return bloc;
         },
         act: (bloc) => bloc.add(LoadPhotos()),
@@ -73,10 +75,12 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading locked IDs fails',
         build: () {
-          when(mockComparisonUseCases.getAllPhotoIdsInUse())
-              .thenAnswer((_) async => Left(CacheFailure('Failed')));
-          when(mockPhotoUseCases.getPhotosFromGallery())
-              .thenAnswer((_) async => Right(testPhotos));
+          when(
+            mockComparisonUseCases.getAllPhotoIdsInUse(),
+          ).thenAnswer((_) async => Left(CacheFailure('Failed')));
+          when(
+            mockPhotoUseCases.getPhotosFromGallery(),
+          ).thenAnswer((_) async => Right(testPhotos));
           return bloc;
         },
         act: (bloc) => bloc.add(LoadPhotos()),
@@ -89,10 +93,12 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading photos fails',
         build: () {
-          when(mockComparisonUseCases.getAllPhotoIdsInUse())
-              .thenAnswer((_) async => const Right([]));
-          when(mockPhotoUseCases.getPhotosFromGallery())
-              .thenAnswer((_) async => Left(ServerFailure('Failed')));
+          when(
+            mockComparisonUseCases.getAllPhotoIdsInUse(),
+          ).thenAnswer((_) async => const Right([]));
+          when(
+            mockPhotoUseCases.getPhotosFromGallery(),
+          ).thenAnswer((_) async => Left(ServerFailure('Failed')));
           return bloc;
         },
         act: (bloc) => bloc.add(LoadPhotos()),
@@ -107,14 +113,17 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should add photo to selection if not already selected',
         build: () => bloc,
-        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: const []),
+        seed: () => PhotoSelectionLoaded(
+          allPhotos: testPhotos,
+          selectedPhotos: const [],
+        ),
         act: (bloc) => bloc.add(TogglePhotoSelection(photo: testPhotos.first)),
         expect: () => [
           isA<PhotoSelectionLoaded>().having(
             (state) => state.selectedPhotos,
             'selectedPhotos',
             [testPhotos.first],
-          )
+          ),
         ],
       );
 
@@ -133,14 +142,17 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should remove photo from selection if already selected',
         build: () => bloc,
-        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: [testPhotos.first]),
+        seed: () => PhotoSelectionLoaded(
+          allPhotos: testPhotos,
+          selectedPhotos: [testPhotos.first],
+        ),
         act: (bloc) => bloc.add(TogglePhotoSelection(photo: testPhotos.first)),
         expect: () => [
           isA<PhotoSelectionLoaded>().having(
             (state) => state.selectedPhotos,
             'selectedPhotos',
             [],
-          )
+          ),
         ],
       );
     });
@@ -149,7 +161,10 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [ComparisonReady] when 2 or more photos are selected',
         build: () => bloc,
-        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: testPhotos),
+        seed: () => PhotoSelectionLoaded(
+          allPhotos: testPhotos,
+          selectedPhotos: testPhotos,
+        ),
         act: (bloc) => bloc.add(StartComparison()),
         expect: () => [isA<ComparisonReady>()],
       );
@@ -157,7 +172,10 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionError] when less than 2 photos are selected',
         build: () => bloc,
-        seed: () => PhotoSelectionLoaded(allPhotos: testPhotos, selectedPhotos: [testPhotos.first]),
+        seed: () => PhotoSelectionLoaded(
+          allPhotos: testPhotos,
+          selectedPhotos: [testPhotos.first],
+        ),
         act: (bloc) => bloc.add(StartComparison()),
         expect: () => [isA<PhotoSelectionError>()],
       );

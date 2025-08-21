@@ -58,9 +58,7 @@ class _AllPairsSkippedDialogState extends State<AllPairsSkippedDialog> {
                     });
                   },
                 ),
-                const Flexible(
-                  child: Text("Don't ask again for this set"),
-                ),
+                const Flexible(child: Text("Don't ask again for this set")),
               ],
             ),
           ],
@@ -69,9 +67,9 @@ class _AllPairsSkippedDialogState extends State<AllPairsSkippedDialog> {
       actions: [
         TextButton(
           onPressed: () {
-            context
-                .read<PhotoComparisonBloc>()
-                .add(ContinueComparing(dontAskAgain: _dontAskAgain));
+            context.read<PhotoComparisonBloc>().add(
+              ContinueComparing(dontAskAgain: _dontAskAgain),
+            );
             Navigator.of(context).pop();
           },
           child: const Text('No, Continue Comparing'),
