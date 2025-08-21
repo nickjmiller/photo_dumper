@@ -264,8 +264,8 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
           ),
           TextButton(
             onPressed: () {
+              Navigator.of(dialogContext).pop(); // Dismiss dialog
               context.read<PhotoComparisonBloc>().add(PauseComparison());
-              // The listener will handle popping the page
             },
             child: const Text('Save & Exit'),
           ),

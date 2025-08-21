@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/di/dependency_injection.dart';
 import '../bloc/comparison_list_bloc.dart';
 import 'photo_selection_page.dart';
@@ -35,7 +37,32 @@ class ComparisonListPage extends StatelessWidget {
               itemCount: state.sessions.length,
               itemBuilder: (context, index) {
                 final session = state.sessions[index];
-                return ComparisonSessionCard(session: session);
+                return Dismissible(
+                  key: Key(session.id),
+                  onDismissed: (direction) {
+                    context
+                        .read<ComparisonListBloc>()
+                        .add(DeleteComparisonSession(session.id));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${session.id} deleted'),
+                        action: SnackBarAction(
+                          label: 'Undo',
+                          onPressed: () {
+                            // TODO: Implement Undo functionality
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20.0),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  child: ComparisonSessionCard(session: session),
+                );
               },
             );
           }
@@ -46,11 +73,9 @@ class ComparisonListPage extends StatelessWidget {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              // The selection page will need to be wrapped in its BLoC provider
               builder: (_) => const PhotoSelectionPage(),
             ),
           ).then((_) {
-            // After returning from selection/comparison, refresh the list
             context.read<ComparisonListBloc>().add(LoadComparisonSessions());
           });
         },
@@ -68,16 +93,37 @@ class ComparisonSessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Implement resume logic on tap
+    final title =
+        "Collection from ${DateFormat.yMMMMd().format(session.createdAt)}";
+    final hasPhotos = session.allPhotos.isNotEmpty;
+
     return Card(
-      margin: const EdgeInsets.all(8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: ListTile(
-        // TODO: Replace with StackedThumbnail widget
-        leading: CircleAvatar(
-          child: Text(session.remainingPhotos.length.toString()),
+        leading: SizedBox(
+          width: 56,
+          height: 56,
+          child: hasPhotos && session.allPhotos.first.file != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: Image.file(
+                    session.allPhotos.first.file!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.image_not_supported),
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: const Icon(Icons.image_not_supported),
+                ),
         ),
-        title: Text('Comparison from ${session.createdAt.toLocal().toString().substring(0, 16)}'),
-        subtitle: Text('${session.remainingPhotos.length} of ${session.allPhotos.length} photos left'),
+        title: Text(title),
+        subtitle: Text(
+            '${session.remainingPhotos.length} of ${session.allPhotos.length} photos left'),
         trailing: const Icon(Icons.arrow_forward_ios),
         onTap: () {
           Navigator.of(context).push(
@@ -85,7 +131,6 @@ class ComparisonSessionCard extends StatelessWidget {
               builder: (_) => PhotoComparisonPage(sessionToResume: session),
             ),
           ).then((_) {
-            // After returning, refresh the list
             context.read<ComparisonListBloc>().add(LoadComparisonSessions());
           });
         },
