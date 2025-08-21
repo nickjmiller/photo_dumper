@@ -5,23 +5,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
+import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/photo_comparison_page.dart';
 
 class MockPhotoUseCases extends Mock implements PhotoUseCases {}
+class MockComparisonUseCases extends Mock implements ComparisonUseCases {}
 
 class MockPhotoRepositoryImpl extends Mock implements PhotoRepositoryImpl {}
+
+Photo createMockPhoto({String? id, String? imagePath}) {
+  return Photo(
+    id: id ?? 'test_id',
+    name: 'test_photo.jpg',
+    imagePath: imagePath ?? '/test/path',
+    createdAt: DateTime.now(),
+    file: File(
+      '/test/path',
+    ), // Provide a mock file to avoid null check errors
+  );
+}
 
 void main() {
   group('PhotoComparisonPage', () {
     late MockPhotoUseCases mockPhotoUseCases;
+    late MockComparisonUseCases mockComparisonUseCases;
     late PhotoComparisonBloc photoComparisonBloc;
 
     setUp(() {
       mockPhotoUseCases = MockPhotoUseCases();
+      mockComparisonUseCases = MockComparisonUseCases();
       photoComparisonBloc = PhotoComparisonBloc(
         photoUseCases: mockPhotoUseCases,
+        comparisonUseCases: mockComparisonUseCases,
       );
     });
 
@@ -30,28 +47,16 @@ void main() {
     });
 
     Widget createTestWidget({
-      required List<Photo> selectedPhotos,
+      List<Photo>? selectedPhotos,
       required PhotoComparisonState initialState,
     }) {
       return MaterialApp(
         home: Scaffold(
           body: BlocProvider<PhotoComparisonBloc>.value(
             value: photoComparisonBloc..emit(initialState),
-            child: PhotoComparisonPage(selectedPhotos: selectedPhotos),
+            child: PhotoComparisonPage(selectedPhotos: selectedPhotos ?? <Photo>[createMockPhoto()]),
           ),
         ),
-      );
-    }
-
-    Photo createMockPhoto({String? id, String? imagePath}) {
-      return Photo(
-        id: id ?? 'test_id',
-        name: 'test_photo.jpg',
-        imagePath: imagePath ?? '/test/path',
-        createdAt: DateTime.now(),
-        file: File(
-          '/test/path',
-        ), // Provide a mock file to avoid null check errors
       );
     }
 
@@ -59,9 +64,9 @@ void main() {
       WidgetTester tester,
     ) async {
       // Arrange
-      final selectedPhotos = [createMockPhoto()];
+      final selectedPhotos = <Photo>[createMockPhoto()];
       final completionState = ComparisonComplete(
-        winner: [createMockPhoto(id: 'winner')],
+        winner: <Photo>[createMockPhoto(id: 'winner')],
       );
 
       await tester.pumpWidget(
@@ -83,8 +88,8 @@ void main() {
       WidgetTester tester,
     ) async {
       // Arrange
-      final selectedPhotos = [createMockPhoto()];
-      final winnerPhotos = [
+      final selectedPhotos = <Photo>[createMockPhoto()];
+      final winnerPhotos = <Photo>[
         createMockPhoto(id: 'winner1'),
         createMockPhoto(id: 'winner2'),
       ];
@@ -110,9 +115,9 @@ void main() {
       WidgetTester tester,
     ) async {
       // Arrange
-      final selectedPhotos = [createMockPhoto()];
+      final selectedPhotos = <Photo>[createMockPhoto()];
       final completionState = ComparisonComplete(
-        winner: [createMockPhoto(id: 'winner')],
+        winner: <Photo>[createMockPhoto(id: 'winner')],
       );
 
       await tester.pumpWidget(
@@ -135,12 +140,12 @@ void main() {
       'should show deletion confirmation screen with Cancel and Confirm buttons',
       (WidgetTester tester) async {
         // Arrange
-        final selectedPhotos = [createMockPhoto()];
+        final selectedPhotos = <Photo>[createMockPhoto()];
         final photo1 = createMockPhoto(id: 'photo1');
         final photo2 = createMockPhoto(id: 'photo2');
         final deletionState = DeletionConfirmation(
-          eliminatedPhotos: [photo1],
-          winner: [photo2],
+          eliminatedPhotos: <Photo>[photo1],
+          winner: <Photo>[photo2],
         );
 
         await tester.pumpWidget(
@@ -168,12 +173,12 @@ void main() {
       WidgetTester tester,
     ) async {
       // Arrange
-      final selectedPhotos = [createMockPhoto()];
+      final selectedPhotos = <Photo>[createMockPhoto()];
       final photo1 = createMockPhoto(id: 'photo1');
       final photo2 = createMockPhoto(id: 'photo2');
       final deletionState = DeletionConfirmation(
-        eliminatedPhotos: [photo1],
-        winner: [photo2],
+        eliminatedPhotos: <Photo>[photo1],
+        winner: <Photo>[photo2],
       );
 
       await tester.pumpWidget(
@@ -199,7 +204,7 @@ void main() {
       WidgetTester tester,
     ) async {
       // Arrange
-      final selectedPhotos = [createMockPhoto()];
+      final selectedPhotos = <Photo>[createMockPhoto()];
       final photo1 = createMockPhoto(id: 'photo1');
       final photo2 = createMockPhoto(id: 'photo2');
       final tournamentState = TournamentInProgress(
@@ -207,7 +212,7 @@ void main() {
         currentPhoto2: photo2,
         currentComparison: 1,
         totalComparisons: 1,
-        remainingPhotos: [photo1, photo2],
+        remainingPhotos: <Photo>[photo1, photo2],
         eliminatedPhotos: [],
       );
 
@@ -235,14 +240,14 @@ void main() {
       'should reset drag state when transitioning from deletion confirmation to tournament',
       (WidgetTester tester) async {
         // Arrange
-        final selectedPhotos = [createMockPhoto()];
+        final selectedPhotos = <Photo>[createMockPhoto()];
         final photo1 = createMockPhoto(id: 'photo1');
         final photo2 = createMockPhoto(id: 'photo2');
 
         // Start with deletion confirmation state
         final deletionState = DeletionConfirmation(
-          eliminatedPhotos: [photo1],
-          winner: [photo2],
+          eliminatedPhotos: <Photo>[photo1],
+          winner: <Photo>[photo2],
         );
 
         await tester.pumpWidget(

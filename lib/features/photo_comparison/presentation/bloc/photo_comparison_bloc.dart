@@ -1,7 +1,11 @@
 import 'dart:io';
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:uuid/uuid.dart';
+import '../../domain/entities/comparison_session.dart';
+import '../../domain/usecases/comparison_usecases.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/services/photo_manager_service.dart';
 import '../../domain/usecases/photo_usecases.dart';
@@ -13,7 +17,7 @@ abstract class PhotoComparisonEvent extends Equatable {
   const PhotoComparisonEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class LoadSelectedPhotos extends PhotoComparisonEvent {
@@ -24,6 +28,17 @@ class LoadSelectedPhotos extends PhotoComparisonEvent {
   @override
   List<Object> get props => [photos];
 }
+
+class ResumeComparison extends PhotoComparisonEvent {
+  final ComparisonSession session;
+
+  const ResumeComparison({required this.session});
+
+  @override
+  List<Object> get props => [session];
+}
+
+class PauseComparison extends PhotoComparisonEvent {}
 
 class SelectWinner extends PhotoComparisonEvent {
   final Photo winner;
@@ -75,6 +90,8 @@ abstract class PhotoComparisonState extends Equatable {
 class PhotoComparisonInitial extends PhotoComparisonState {}
 
 class PhotoComparisonLoading extends PhotoComparisonState {}
+
+class PhotoComparisonPaused extends PhotoComparisonState {}
 
 class TournamentInProgress extends PhotoComparisonState {
   final Photo currentPhoto1;
@@ -147,11 +164,14 @@ class PhotoComparisonError extends PhotoComparisonState {
 class PhotoComparisonBloc
     extends Bloc<PhotoComparisonEvent, PhotoComparisonState> {
   final PhotoUseCases photoUseCases;
+  final ComparisonUseCases comparisonUseCases;
   final PhotoManagerService photoManagerService;
   final PlatformService platformService;
+  final Uuid uuid;
   final Random _random = Random();
 
   // Internal state tracking
+  String? _sessionId;
   List<Photo> _allPhotos = [];
   List<Photo> _remainingPhotos = [];
   List<Photo> _eliminatedPhotos = [];
@@ -168,12 +188,16 @@ class PhotoComparisonBloc
 
   PhotoComparisonBloc({
     required this.photoUseCases,
+    required this.comparisonUseCases,
+    this.uuid = const Uuid(),
     PhotoManagerService? photoManagerService,
     PlatformService? platformService,
   })  : photoManagerService = photoManagerService ?? PhotoManagerService(),
         platformService = platformService ?? PlatformService(),
         super(PhotoComparisonInitial()) {
     on<LoadSelectedPhotos>(_onLoadSelectedPhotos);
+    on<ResumeComparison>(_onResumeComparison);
+    on<PauseComparison>(_onPauseComparison);
     on<SelectWinner>(_onSelectWinner);
     on<SkipPair>(_onSkipPair);
     on<NextPair>(_onNextPair);
@@ -190,6 +214,7 @@ class PhotoComparisonBloc
   ) async {
     emit(PhotoComparisonLoading());
 
+    _sessionId = null; // This is a new session
     _allPhotos = List.from(event.photos);
     _remainingPhotos = List.from(event.photos);
     _eliminatedPhotos = [];
@@ -199,6 +224,49 @@ class PhotoComparisonBloc
 
     _generatePairs();
     _emitCurrentState(emit);
+  }
+
+  Future<void> _onResumeComparison(
+    ResumeComparison event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    emit(PhotoComparisonLoading());
+
+    // Restore persisted state
+    _sessionId = event.session.id;
+    _allPhotos = List.from(event.session.allPhotos);
+    _remainingPhotos = List.from(event.session.remainingPhotos);
+    _eliminatedPhotos = List.from(event.session.eliminatedPhotos);
+
+    // Reset transient state
+    _skippedPairs = {};
+    _dontAskAgain = false;
+    _currentPairIndex = 0;
+
+    _generatePairs();
+    _emitCurrentState(emit);
+  }
+
+  Future<void> _onPauseComparison(
+    PauseComparison event,
+    Emitter<PhotoComparisonState> emit,
+  ) async {
+    _sessionId ??= uuid.v4();
+
+    final session = ComparisonSession(
+      id: _sessionId!,
+      allPhotos: _allPhotos,
+      remainingPhotos: _remainingPhotos, // This will be calculated on load
+      eliminatedPhotos: _eliminatedPhotos,
+      createdAt: DateTime.now(),
+    );
+
+    final result = await comparisonUseCases.saveComparisonSession(session);
+
+    result.fold(
+      (failure) => emit(PhotoComparisonError('Failed to save session: ${failure.toString()}')),
+      (_) => emit(PhotoComparisonPaused()),
+    );
   }
 
   Future<void> _onSelectWinner(
@@ -296,6 +364,11 @@ class PhotoComparisonBloc
         await photoManagerService.deleteWithIds(photoIds);
       }
 
+      // After successful photo deletion, delete the session from the database
+      if (_sessionId != null) {
+        await comparisonUseCases.deleteComparisonSession(_sessionId!);
+      }
+
       emit(ComparisonComplete(winner: _remainingPhotos));
     } catch (e) {
       // This single catch block will now handle failures from both moveToTrash (if it's a real error)
@@ -307,7 +380,11 @@ class PhotoComparisonBloc
   void _onCancelComparison(
     CancelComparison event,
     Emitter<PhotoComparisonState> emit,
-  ) {
+  ) async {
+    // If the session was saved, delete it from the database
+    if (_sessionId != null) {
+      await comparisonUseCases.deleteComparisonSession(_sessionId!);
+    }
     // Reset all internal state
     _allPhotos = [];
     _remainingPhotos = [];

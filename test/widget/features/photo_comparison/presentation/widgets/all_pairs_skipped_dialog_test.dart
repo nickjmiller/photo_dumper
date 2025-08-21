@@ -2,17 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_comparison_bloc.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/widgets/all_pairs_skipped_dialog.dart';
-import 'package:bloc_test/bloc_test.dart';
 
-class MockPhotoComparisonBloc extends MockBloc<PhotoComparisonEvent, PhotoComparisonState> implements PhotoComparisonBloc {}
+class MockPhotoComparisonBloc extends Mock implements PhotoComparisonBloc {}
+class FakePhotoComparisonEvent extends Fake implements PhotoComparisonEvent {}
+class FakePhotoComparisonState extends Fake implements PhotoComparisonState {}
 
 void main() {
   group('AllPairsSkippedDialog', () {
-    late PhotoComparisonBloc mockBloc;
+    late MockPhotoComparisonBloc mockBloc;
 
     final testPhotos = [
       Photo(id: '1', name: 'photo1.jpg', createdAt: DateTime.now(), file: File('test/path/photo1.jpg')),
@@ -21,6 +22,12 @@ void main() {
 
     setUp(() {
       mockBloc = MockPhotoComparisonBloc();
+      registerFallbackValue(FakePhotoComparisonEvent());
+      registerFallbackValue(FakePhotoComparisonState());
+
+      // Stub the BLoC's stream and state
+      when(() => mockBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => mockBloc.state).thenReturn(AllPairsSkipped(remainingPhotos: testPhotos));
     });
 
     Future<void> pumpDialog(WidgetTester tester) async {
@@ -63,9 +70,8 @@ void main() {
       await tester.tap(find.text('No, Continue Comparing'));
       await tester.pump();
 
-      final captured = verify(mockBloc.add(captureAny)).captured;
-      expect(captured.first, isA<ContinueComparing>());
-      expect((captured.first as ContinueComparing).dontAskAgain, isFalse);
+      verify(() => mockBloc.add(any(that: isA<ContinueComparing>()
+          .having((e) => e.dontAskAgain, 'dontAskAgain', false))));
     });
 
     testWidgets('tapping "No, Continue Comparing" dispatches ContinueComparing event with dontAskAgain=true when checked', (WidgetTester tester) async {
@@ -77,18 +83,18 @@ void main() {
       await tester.tap(find.text('No, Continue Comparing'));
       await tester.pump();
 
-      final captured = verify(mockBloc.add(captureAny)).captured;
-      expect(captured.first, isA<ContinueComparing>());
-      expect((captured.first as ContinueComparing).dontAskAgain, isTrue);
+      verify(() => mockBloc.add(any(that: isA<ContinueComparing>()
+          .having((e) => e.dontAskAgain, 'dontAskAgain', true))));
     });
 
     testWidgets('tapping "Yes, Keep Them" dispatches KeepRemainingPhotos event', (WidgetTester tester) async {
+      when(() => mockBloc.add(any())).thenReturn(null);
       await pumpDialog(tester);
 
       await tester.tap(find.text('Yes, Keep Them'));
       await tester.pump();
 
-      verify(mockBloc.add(isA<KeepRemainingPhotos>())).called(1);
+      verify(() => mockBloc.add(any(that: isA<KeepRemainingPhotos>())));
     });
   });
 }

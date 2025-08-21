@@ -3,17 +3,23 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i6;
 
 import 'package:dartz/dartz.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:photo_dumper/core/error/failures.dart' as _i6;
+import 'package:photo_dumper/core/error/failures.dart' as _i7;
+import 'package:photo_dumper/features/photo_comparison/domain/entities/comparison_session.dart'
+    as _i10;
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart'
-    as _i7;
+    as _i8;
+import 'package:photo_dumper/features/photo_comparison/domain/repositories/comparison_repository.dart'
+    as _i4;
 import 'package:photo_dumper/features/photo_comparison/domain/repositories/photo_repository.dart'
     as _i2;
+import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart'
+    as _i9;
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart'
-    as _i4;
+    as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -40,10 +46,16 @@ class _FakeEither_1<L, R> extends _i1.SmartFake implements _i3.Either<L, R> {
     : super(parent, parentInvocation);
 }
 
+class _FakeComparisonRepository_2 extends _i1.SmartFake
+    implements _i4.ComparisonRepository {
+  _FakeComparisonRepository_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [PhotoUseCases].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPhotoUseCases extends _i1.Mock implements _i4.PhotoUseCases {
+class MockPhotoUseCases extends _i1.Mock implements _i5.PhotoUseCases {
   MockPhotoUseCases() {
     _i1.throwOnMissingStub(this);
   }
@@ -60,16 +72,115 @@ class MockPhotoUseCases extends _i1.Mock implements _i4.PhotoUseCases {
           as _i2.PhotoRepository);
 
   @override
-  _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>> getPhotosFromGallery() =>
+  _i6.Future<_i3.Either<_i7.Failure, List<_i8.Photo>>> getPhotosFromGallery() =>
       (super.noSuchMethod(
             Invocation.method(#getPhotosFromGallery, []),
             returnValue:
-                _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>>.value(
-                  _FakeEither_1<_i6.Failure, List<_i7.Photo>>(
+                _i6.Future<_i3.Either<_i7.Failure, List<_i8.Photo>>>.value(
+                  _FakeEither_1<_i7.Failure, List<_i8.Photo>>(
                     this,
                     Invocation.method(#getPhotosFromGallery, []),
                   ),
                 ),
           )
-          as _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>>);
+          as _i6.Future<_i3.Either<_i7.Failure, List<_i8.Photo>>>);
+}
+
+/// A class which mocks [ComparisonUseCases].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockComparisonUseCases extends _i1.Mock
+    implements _i9.ComparisonUseCases {
+  MockComparisonUseCases() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.ComparisonRepository get repository =>
+      (super.noSuchMethod(
+            Invocation.getter(#repository),
+            returnValue: _FakeComparisonRepository_2(
+              this,
+              Invocation.getter(#repository),
+            ),
+          )
+          as _i4.ComparisonRepository);
+
+  @override
+  _i6.Future<_i3.Either<_i7.Failure, List<_i10.ComparisonSession>>>
+  getComparisonSessions() =>
+      (super.noSuchMethod(
+            Invocation.method(#getComparisonSessions, []),
+            returnValue:
+                _i6.Future<
+                  _i3.Either<_i7.Failure, List<_i10.ComparisonSession>>
+                >.value(
+                  _FakeEither_1<_i7.Failure, List<_i10.ComparisonSession>>(
+                    this,
+                    Invocation.method(#getComparisonSessions, []),
+                  ),
+                ),
+          )
+          as _i6.Future<_i3.Either<_i7.Failure, List<_i10.ComparisonSession>>>);
+
+  @override
+  _i6.Future<_i3.Either<_i7.Failure, _i10.ComparisonSession?>>
+  getComparisonSession(String? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#getComparisonSession, [id]),
+            returnValue:
+                _i6.Future<
+                  _i3.Either<_i7.Failure, _i10.ComparisonSession?>
+                >.value(
+                  _FakeEither_1<_i7.Failure, _i10.ComparisonSession?>(
+                    this,
+                    Invocation.method(#getComparisonSession, [id]),
+                  ),
+                ),
+          )
+          as _i6.Future<_i3.Either<_i7.Failure, _i10.ComparisonSession?>>);
+
+  @override
+  _i6.Future<_i3.Either<_i7.Failure, void>> saveComparisonSession(
+    _i10.ComparisonSession? session,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveComparisonSession, [session]),
+            returnValue: _i6.Future<_i3.Either<_i7.Failure, void>>.value(
+              _FakeEither_1<_i7.Failure, void>(
+                this,
+                Invocation.method(#saveComparisonSession, [session]),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Either<_i7.Failure, void>>);
+
+  @override
+  _i6.Future<_i3.Either<_i7.Failure, void>> deleteComparisonSession(
+    String? id,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteComparisonSession, [id]),
+            returnValue: _i6.Future<_i3.Either<_i7.Failure, void>>.value(
+              _FakeEither_1<_i7.Failure, void>(
+                this,
+                Invocation.method(#deleteComparisonSession, [id]),
+              ),
+            ),
+          )
+          as _i6.Future<_i3.Either<_i7.Failure, void>>);
+
+  @override
+  _i6.Future<_i3.Either<_i7.Failure, List<String>>> getAllPhotoIdsInUse() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllPhotoIdsInUse, []),
+            returnValue:
+                _i6.Future<_i3.Either<_i7.Failure, List<String>>>.value(
+                  _FakeEither_1<_i7.Failure, List<String>>(
+                    this,
+                    Invocation.method(#getAllPhotoIdsInUse, []),
+                  ),
+                ),
+          )
+          as _i6.Future<_i3.Either<_i7.Failure, List<String>>>);
 }
