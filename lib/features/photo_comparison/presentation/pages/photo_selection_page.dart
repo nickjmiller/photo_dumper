@@ -32,9 +32,9 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
           ),
         )
         .then((_) {
-      if (!mounted) return;
-      context.read<PhotoSelectionBloc>().add(LoadPhotos());
-    });
+          if (!mounted) return;
+          context.read<PhotoSelectionBloc>().add(LoadPhotos());
+        });
   }
 
   @override
