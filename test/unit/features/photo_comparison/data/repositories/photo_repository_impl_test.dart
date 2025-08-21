@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/data/datasources/photo_library_datasource.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
+// ignore: unused_import
 import 'package:dartz/dartz.dart';
 import 'package:photo_dumper/core/error/failures.dart';
 
@@ -52,7 +53,8 @@ class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
   }
 }
 
-class MockPhotoLibraryDataSourceThrowsException implements PhotoLibraryDataSource {
+class MockPhotoLibraryDataSourceThrowsException
+    implements PhotoLibraryDataSource {
   @override
   Future<List<Photo>> getPhotosFromGallery() async {
     throw Exception('Test Exception');
@@ -82,46 +84,61 @@ void main() {
       mockDataSourceThrows = MockPhotoLibraryDataSourceThrowsException();
     });
 
-    test('should return list of photos when data source call is successful', () async {
-      // Arrange
-      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSource);
+    test(
+      'should return list of photos when data source call is successful',
+      () async {
+        // Arrange
+        repository = PhotoRepositoryImpl(
+          photoLibraryDataSource: mockDataSource,
+        );
 
-      // Act
-      final result = await repository.getPhotosFromGallery();
+        // Act
+        final result = await repository.getPhotosFromGallery();
 
-      // Assert
-      expect(result.isRight(), true);
-      final photos = result.getOrElse(() => []);
-      expect(photos.length, 2);
-      expect(photos[0].id, '1');
-    });
+        // Assert
+        expect(result.isRight(), true);
+        final photos = result.getOrElse(() => []);
+        expect(photos.length, 2);
+        expect(photos[0].id, '1');
+      },
+    );
 
-    test('should return empty list when data source returns empty list', () async {
-      // Arrange
-      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSourceEmpty);
+    test(
+      'should return empty list when data source returns empty list',
+      () async {
+        // Arrange
+        repository = PhotoRepositoryImpl(
+          photoLibraryDataSource: mockDataSourceEmpty,
+        );
 
-      // Act
-      final result = await repository.getPhotosFromGallery();
+        // Act
+        final result = await repository.getPhotosFromGallery();
 
-      // Assert
-      expect(result.isRight(), true);
-      final photos = result.getOrElse(() => []);
-      expect(photos.isEmpty, true);
-    });
+        // Assert
+        expect(result.isRight(), true);
+        final photos = result.getOrElse(() => []);
+        expect(photos.isEmpty, true);
+      },
+    );
 
-    test('should return a failure when data source throws an exception', () async {
-      // Arrange
-      repository = PhotoRepositoryImpl(photoLibraryDataSource: mockDataSourceThrows);
+    test(
+      'should return a failure when data source throws an exception',
+      () async {
+        // Arrange
+        repository = PhotoRepositoryImpl(
+          photoLibraryDataSource: mockDataSourceThrows,
+        );
 
-      // Act
-      final result = await repository.getPhotosFromGallery();
+        // Act
+        final result = await repository.getPhotosFromGallery();
 
-      // Assert
-      expect(result.isLeft(), true);
-      result.fold(
-        (failure) => expect(failure, isA<ServerFailure>()),
-        (photos) => fail('should not return photos'),
-      );
-    });
+        // Assert
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<ServerFailure>()),
+          (photos) => fail('should not return photos'),
+        );
+      },
+    );
   });
 }

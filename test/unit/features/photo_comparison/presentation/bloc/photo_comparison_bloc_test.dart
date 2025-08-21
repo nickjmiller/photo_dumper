@@ -13,7 +13,13 @@ import 'package:photo_dumper/core/services/platform_service.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
 import 'photo_comparison_bloc_test.mocks.dart';
 
-@GenerateMocks([PhotoUseCases, PhotoManagerService, PhotoRepository, PlatformService, ComparisonUseCases])
+@GenerateMocks([
+  PhotoUseCases,
+  PhotoManagerService,
+  PhotoRepository,
+  PlatformService,
+  ComparisonUseCases,
+])
 void main() {
   group('PhotoComparisonBloc', () {
     late PhotoComparisonBloc bloc;
@@ -23,9 +29,24 @@ void main() {
     late MockPlatformService mockPlatformService;
 
     final testPhotos = [
-      Photo(id: '1', name: 'photo1.jpg', createdAt: DateTime.now(), file: File('test/path/photo1.jpg')),
-      Photo(id: '2', name: 'photo2.jpg', createdAt: DateTime.now(), file: File('test/path/photo2.jpg')),
-      Photo(id: '3', name: 'photo3.jpg', createdAt: DateTime.now(), file: File('test/path/photo3.jpg')),
+      Photo(
+        id: '1',
+        name: 'photo1.jpg',
+        createdAt: DateTime.now(),
+        file: File('test/path/photo1.jpg'),
+      ),
+      Photo(
+        id: '2',
+        name: 'photo2.jpg',
+        createdAt: DateTime.now(),
+        file: File('test/path/photo2.jpg'),
+      ),
+      Photo(
+        id: '3',
+        name: 'photo3.jpg',
+        createdAt: DateTime.now(),
+        file: File('test/path/photo3.jpg'),
+      ),
     ];
 
     setUp(() {
@@ -69,9 +90,7 @@ void main() {
           bloc.add(SkipPair(photo1: photo1, photo2: photo2));
         },
         skip: 2, // Skip Loading and initial TournamentInProgress
-        expect: () => [
-          isA<AllPairsSkipped>(),
-        ],
+        expect: () => [isA<AllPairsSkipped>()],
       );
     });
 
@@ -88,9 +107,7 @@ void main() {
           bloc.add(KeepRemainingPhotos());
         },
         skip: 3,
-        expect: () => [
-          isA<DeletionConfirmation>(),
-        ],
+        expect: () => [isA<DeletionConfirmation>()],
       );
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
@@ -102,9 +119,7 @@ void main() {
           bloc.add(ContinueComparing());
         },
         skip: 3,
-        expect: () => [
-          isA<TournamentInProgress>(),
-        ],
+        expect: () => [isA<TournamentInProgress>()],
       );
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
@@ -116,9 +131,7 @@ void main() {
           bloc.add(ContinueComparing(dontAskAgain: true));
         },
         skip: 3,
-        expect: () => [
-          isA<TournamentInProgress>(),
-        ],
+        expect: () => [isA<TournamentInProgress>()],
       );
     });
 
@@ -162,15 +175,19 @@ void main() {
     });
 
     group('ConfirmDeletion', () {
-       final photo1 = testPhotos[0];
-       final photo2 = testPhotos[1];
+      final photo1 = testPhotos[0];
+      final photo2 = testPhotos[1];
 
-       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
+      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
         'emits [ComparisonComplete] when deletion is successful',
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
-          when(mockPhotoManagerService.deleteWithIds(any)).thenAnswer((_) async => []);
-          when(mockComparisonUseCases.deleteComparisonSession(any)).thenAnswer((_) async => const Right(null));
+          when(
+            mockPhotoManagerService.deleteWithIds(any),
+          ).thenAnswer((_) async => []);
+          when(
+            mockComparisonUseCases.deleteComparisonSession(any),
+          ).thenAnswer((_) async => const Right(null));
           return bloc;
         },
         act: (bloc) {
@@ -179,17 +196,16 @@ void main() {
           bloc.add(ConfirmDeletion());
         },
         skip: 3,
-        expect: () => [
-          isA<ComparisonComplete>(),
-        ],
-       );
+        expect: () => [isA<ComparisonComplete>()],
+      );
 
-       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
+      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
         'emits [PhotoComparisonError] when deletion fails on a non-Android platform',
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
-          when(mockPhotoManagerService.deleteWithIds(any))
-              .thenThrow(Exception('Deletion failed'));
+          when(
+            mockPhotoManagerService.deleteWithIds(any),
+          ).thenThrow(Exception('Deletion failed'));
           return bloc;
         },
         act: (bloc) {
@@ -198,10 +214,8 @@ void main() {
           bloc.add(ConfirmDeletion());
         },
         skip: 3,
-        expect: () => [
-          isA<PhotoComparisonError>(),
-        ],
-       );
+        expect: () => [isA<PhotoComparisonError>()],
+      );
     });
   });
 }

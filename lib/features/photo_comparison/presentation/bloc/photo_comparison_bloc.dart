@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -192,9 +190,9 @@ class PhotoComparisonBloc
     this.uuid = const Uuid(),
     PhotoManagerService? photoManagerService,
     PlatformService? platformService,
-  })  : photoManagerService = photoManagerService ?? PhotoManagerService(),
-        platformService = platformService ?? PlatformService(),
-        super(PhotoComparisonInitial()) {
+  }) : photoManagerService = photoManagerService ?? PhotoManagerService(),
+       platformService = platformService ?? PlatformService(),
+       super(PhotoComparisonInitial()) {
     on<LoadSelectedPhotos>(_onLoadSelectedPhotos);
     on<ResumeComparison>(_onResumeComparison);
     on<PauseComparison>(_onPauseComparison);
@@ -264,7 +262,9 @@ class PhotoComparisonBloc
     final result = await comparisonUseCases.saveComparisonSession(session);
 
     result.fold(
-      (failure) => emit(PhotoComparisonError('Failed to save session: ${failure.toString()}')),
+      (failure) => emit(
+        PhotoComparisonError('Failed to save session: ${failure.toString()}'),
+      ),
       (_) => emit(PhotoComparisonPaused()),
     );
   }
@@ -337,8 +337,7 @@ class PhotoComparisonBloc
     }
 
     try {
-      final List<String> photoIds =
-          _eliminatedPhotos.map((p) => p.id).toList();
+      final List<String> photoIds = _eliminatedPhotos.map((p) => p.id).toList();
 
       bool deletionSucceeded = false;
 
@@ -346,8 +345,11 @@ class PhotoComparisonBloc
       if (platformService.isAndroid) {
         try {
           final assetEntities = await Future.wait(
-              photoIds.map((id) => photoManagerService.assetEntityFromId(id)));
-          final nonNullAssetEntities = assetEntities.whereType<AssetEntity>().toList();
+            photoIds.map((id) => photoManagerService.assetEntityFromId(id)),
+          );
+          final nonNullAssetEntities = assetEntities
+              .whereType<AssetEntity>()
+              .toList();
 
           if (nonNullAssetEntities.isNotEmpty) {
             await photoManagerService.moveToTrash(nonNullAssetEntities);

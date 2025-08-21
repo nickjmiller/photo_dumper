@@ -11,6 +11,7 @@ import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_c
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/photo_comparison_page.dart';
 
 class MockPhotoUseCases extends Mock implements PhotoUseCases {}
+
 class MockComparisonUseCases extends Mock implements ComparisonUseCases {}
 
 class MockPhotoRepositoryImpl extends Mock implements PhotoRepositoryImpl {}
@@ -21,9 +22,7 @@ Photo createMockPhoto({String? id, String? imagePath}) {
     name: 'test_photo.jpg',
     imagePath: imagePath ?? '/test/path',
     createdAt: DateTime.now(),
-    file: File(
-      '/test/path',
-    ), // Provide a mock file to avoid null check errors
+    file: File('/test/path'), // Provide a mock file to avoid null check errors
   );
 }
 
@@ -54,7 +53,9 @@ void main() {
         home: Scaffold(
           body: BlocProvider<PhotoComparisonBloc>.value(
             value: photoComparisonBloc..emit(initialState),
-            child: PhotoComparisonPage(selectedPhotos: selectedPhotos ?? <Photo>[createMockPhoto()]),
+            child: PhotoComparisonPage(
+              selectedPhotos: selectedPhotos ?? <Photo>[createMockPhoto()],
+            ),
           ),
         ),
       );

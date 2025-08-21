@@ -26,10 +26,7 @@ class SelectablePhotoCard extends StatelessWidget {
               ? Container(
                   color: Colors.black54,
                   padding: const EdgeInsets.all(4.0),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.check_circle, color: Colors.white),
                 )
               : null,
           child: Stack(
@@ -51,13 +48,9 @@ class SelectablePhotoCard extends StatelessWidget {
               ),
               if (isLocked)
                 Container(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black38,
                   child: const Center(
-                    child: Icon(
-                      Icons.lock,
-                      color: Colors.white,
-                      size: 40,
-                    ),
+                    child: Icon(Icons.lock, color: Colors.white, size: 40),
                   ),
                 ),
             ],

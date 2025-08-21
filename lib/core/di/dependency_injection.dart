@@ -25,7 +25,10 @@ Future<void> setupDependencies() async {
     () => PhotoRepositoryImpl(photoLibraryDataSource: getIt()),
   );
   getIt.registerLazySingleton<ComparisonRepository>(
-    () => ComparisonRepositoryImpl(localDataSource: getIt(), photoRepository: getIt()),
+    () => ComparisonRepositoryImpl(
+      localDataSource: getIt(),
+      photoRepository: getIt(),
+    ),
   );
 
   // Data sources
