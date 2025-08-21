@@ -30,23 +30,27 @@ class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
         return [];
       }
 
+      // Instead of iterating all paths, which can cause duplicates,
+      // we just use the first path. This is typically the "Recents" or "All Photos" album.
+      final List<AssetEntity> assets = await paths.first.getAssetListPaged(
+        page: 0,
+        size: 5000, // A large number to fetch a substantial amount of recent photos
+      );
+
       final List<Photo> photos = [];
-      for (final path in paths) {
-        final List<AssetEntity> assets = await path.getAssetListPaged(page: 0, size: 1000); // Fetch up to 1000 assets per album
-        for (final asset in assets) {
-          final file = await asset.file;
-          if (file != null) {
-            photos.add(
-              Photo(
-                id: asset.id,
-                name: asset.title ?? 'No title',
-                imagePath: file.path,
-                thumbnailPath: file.path,
-                createdAt: asset.createDateTime,
-                file: file,
-              ),
-            );
-          }
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file != null) {
+          photos.add(
+            Photo(
+              id: asset.id,
+              name: asset.title ?? 'No title',
+              imagePath: file.path,
+              thumbnailPath: file.path,
+              createdAt: asset.createDateTime,
+              file: file,
+            ),
+          );
         }
       }
 
