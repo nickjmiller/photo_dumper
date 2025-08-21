@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/di/dependency_injection.dart';
 import '../bloc/photo_selection_bloc.dart';
-import '../bloc/photo_comparison_bloc.dart';
+import '../widgets/selectable_photo_card.dart';
 import 'photo_comparison_page.dart';
 
 class PhotoSelectionPage extends StatefulWidget {
@@ -13,30 +12,34 @@ class PhotoSelectionPage extends StatefulWidget {
 }
 
 class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
-  void _pickPhotosAndCompare() {
-    context.read<PhotoSelectionBloc>().add(PickPhotosAndCompare());
+  @override
+  void initState() {
+    super.initState();
+    // Load photos when the page is initialized
+    context.read<PhotoSelectionBloc>().add(LoadPhotos());
+  }
+
+  void _toggleSelection(photo) {
+    context.read<PhotoSelectionBloc>().add(TogglePhotoSelection(photo: photo));
+  }
+
+  void _startComparison() {
+    context.read<PhotoSelectionBloc>().add(StartComparison());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Photo Dumper'),
+        title: const Text('Select Photos'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: BlocListener<PhotoSelectionBloc, PhotoSelectionState>(
         listener: (context, state) {
           if (state is ComparisonReady) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => BlocProvider(
-                  create: (context) =>
-                      PhotoComparisonBloc(photoUseCases: getIt()),
-                  child: PhotoComparisonPage(
-                    selectedPhotos: state.selectedPhotos,
-                  ),
-                ),
-              ),
+            Navigator.of(context).pushReplacementNamed(
+              PhotoComparisonPage.routeName,
+              arguments: {'photos': state.selectedPhotos},
             );
           } else if (state is PhotoSelectionError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -55,51 +58,70 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
         },
         child: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
           builder: (context, state) {
-            if (state is PhotoSelectionLoading) {
+            if (state is PhotoSelectionLoading || state is PhotoSelectionInitial) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
+            if (state is PhotoSelectionLoaded) {
+              return GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 4,
+                  mainAxisSpacing: 4,
+                ),
+                itemCount: state.allPhotos.length,
+                itemBuilder: (context, index) {
+                  final photo = state.allPhotos[index];
+                  final isSelected = state.selectedPhotos.contains(photo);
+                  return SelectablePhotoCard(
+                    key: Key('photo_thumbnail_${photo.id}'),
+                    photo: photo,
+                    isSelected: isSelected,
+                    onTap: () => _toggleSelection(photo),
+                  );
+                },
+              );
+            }
+
+            if (state is PhotoSelectionError) {
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.photo_library,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.primary,
+                    const Icon(Icons.error_outline, color: Colors.red, size: 60),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(state.message, textAlign: TextAlign.center),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Photo Dumper',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Select photos to compare and organize',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    FilledButton.icon(
-                      onPressed: _pickPhotosAndCompare,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('Select Photos'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<PhotoSelectionBloc>().add(LoadPhotos());
+                      },
+                      child: const Text('Retry'),
+                    )
                   ],
                 ),
-              ),
+              );
+            }
+
+            return const Center(
+              child: Text('Something went wrong. Please restart the app.'),
             );
           },
         ),
+      ),
+      floatingActionButton:
+          BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
+        builder: (context, state) {
+          if (state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2) {
+            return FloatingActionButton.extended(
+              onPressed: _startComparison,
+              label: Text('Compare (${state.selectedPhotos.length})'),
+              icon: const Icon(Icons.compare_arrows),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }

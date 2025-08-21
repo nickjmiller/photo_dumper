@@ -60,14 +60,14 @@ class MockPhotoUseCases extends _i1.Mock implements _i4.PhotoUseCases {
           as _i2.PhotoRepository);
 
   @override
-  _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>> getLibraryPhotos() =>
+  _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>> getPhotosFromGallery() =>
       (super.noSuchMethod(
-            Invocation.method(#getLibraryPhotos, []),
+            Invocation.method(#getPhotosFromGallery, []),
             returnValue:
                 _i5.Future<_i3.Either<_i6.Failure, List<_i7.Photo>>>.value(
                   _FakeEither_1<_i6.Failure, List<_i7.Photo>>(
                     this,
-                    Invocation.method(#getLibraryPhotos, []),
+                    Invocation.method(#getPhotosFromGallery, []),
                   ),
                 ),
           )

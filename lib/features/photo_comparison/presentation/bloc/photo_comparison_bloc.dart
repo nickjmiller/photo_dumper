@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../domain/entities/photo.dart';
+import '../../domain/services/photo_manager_service.dart';
 import '../../domain/usecases/photo_usecases.dart';
+import '../../../../core/services/platform_service.dart';
 import 'dart:math';
 
 // Events
@@ -136,6 +140,8 @@ class PhotoComparisonError extends PhotoComparisonState {
 class PhotoComparisonBloc
     extends Bloc<PhotoComparisonEvent, PhotoComparisonState> {
   final PhotoUseCases photoUseCases;
+  final PhotoManagerService photoManagerService;
+  final PlatformService platformService;
   final Random _random = Random();
 
   // Internal state tracking
@@ -145,8 +151,13 @@ class PhotoComparisonBloc
   List<List<Photo>> _currentRoundPairs = [];
   int _currentPairIndex = 0;
 
-  PhotoComparisonBloc({required this.photoUseCases})
-    : super(PhotoComparisonInitial()) {
+  PhotoComparisonBloc({
+    required this.photoUseCases,
+    PhotoManagerService? photoManagerService,
+    PlatformService? platformService,
+  })  : photoManagerService = photoManagerService ?? PhotoManagerService(),
+        platformService = platformService ?? PlatformService(),
+        super(PhotoComparisonInitial()) {
     on<LoadSelectedPhotos>(_onLoadSelectedPhotos);
     on<SelectWinner>(_onSelectWinner);
     on<SkipPair>(_onSkipPair);
@@ -229,7 +240,45 @@ class PhotoComparisonBloc
     ConfirmDeletion event,
     Emitter<PhotoComparisonState> emit,
   ) async {
-    emit(ComparisonComplete(winner: _remainingPhotos));
+    if (_eliminatedPhotos.isEmpty) {
+      emit(ComparisonComplete(winner: _remainingPhotos));
+      return;
+    }
+
+    try {
+      final List<String> photoIds =
+          _eliminatedPhotos.map((p) => p.id).toList();
+
+      bool deletionSucceeded = false;
+
+      // Prefer moving to trash on Android if possible
+      if (platformService.isAndroid) {
+        try {
+          final assetEntities = await Future.wait(
+              photoIds.map((id) => photoManagerService.assetEntityFromId(id)));
+          final nonNullAssetEntities = assetEntities.whereType<AssetEntity>().toList();
+
+          if (nonNullAssetEntities.isNotEmpty) {
+            await photoManagerService.moveToTrash(nonNullAssetEntities);
+            deletionSucceeded = true;
+          }
+        } catch (e) {
+          // Failed to move to trash, will fallback to permanent delete.
+          // We don't rethrow here, because failure is expected on older Android.
+        }
+      }
+
+      // If not Android, or if moving to trash failed, use permanent deletion.
+      if (!deletionSucceeded) {
+        await photoManagerService.deleteWithIds(photoIds);
+      }
+
+      emit(ComparisonComplete(winner: _remainingPhotos));
+    } catch (e) {
+      // This single catch block will now handle failures from both moveToTrash (if it's a real error)
+      // and deleteWithIds, ensuring a PhotoComparisonError is always emitted on failure.
+      emit(PhotoComparisonError('Failed to delete photos: $e'));
+    }
   }
 
   void _onCancelComparison(

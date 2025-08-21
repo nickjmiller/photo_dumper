@@ -9,6 +9,7 @@ import '../../domain/entities/photo.dart';
 import 'photo_selection_page.dart';
 
 class PhotoComparisonPage extends StatefulWidget {
+  static const routeName = '/photo-comparison';
   final List<Photo> selectedPhotos;
 
   const PhotoComparisonPage({super.key, required this.selectedPhotos});
@@ -326,6 +327,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                           Expanded(
                             flex: 1,
                             child: PhotoCard(
+                              key: Key('comparison_photo_1_${currentPhoto1.id}'),
                               photo: currentPhoto1,
                               animation: _photo1Animation,
                               dragOffset: _photo1DragOffset,
@@ -333,6 +335,8 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                                   _handlePhoto1DragStart(),
                               onHorizontalDragUpdate: _handlePhoto1DragUpdate,
                               onHorizontalDragEnd: _handlePhoto1DragEnd,
+                              onTap: () =>
+                                  _selectWinner(currentPhoto1, currentPhoto2),
                             ),
                           ),
                           Padding(
@@ -363,6 +367,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                           Expanded(
                             flex: 1,
                             child: PhotoCard(
+                              key: Key('comparison_photo_2_${currentPhoto2.id}'),
                               photo: currentPhoto2,
                               animation: _photo2Animation,
                               dragOffset: _photo2DragOffset,
@@ -370,6 +375,8 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                                   _handlePhoto2DragStart(),
                               onHorizontalDragUpdate: _handlePhoto2DragUpdate,
                               onHorizontalDragEnd: _handlePhoto2DragEnd,
+                              onTap: () =>
+                                  _selectWinner(currentPhoto2, currentPhoto1),
                             ),
                           ),
                         ],
