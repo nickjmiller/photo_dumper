@@ -129,4 +129,82 @@ void main() {
     final capturedIds = verificationResult.captured.single as List<String>;
     expect(capturedIds.length, 2);
   });
+
+  testWidgets('Full photo comparison flow with skipping all pairs', (WidgetTester tester) async {
+    final twoPhotos = testPhotos.sublist(0, 2);
+    when(mockPhotoUseCases.getPhotosFromGallery())
+        .thenAnswer((_) async => Right(twoPhotos));
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<PhotoSelectionBloc>(
+            create: (_) => PhotoSelectionBloc(photoUseCases: mockPhotoUseCases),
+          ),
+          BlocProvider<PhotoComparisonBloc>(
+            create: (_) => PhotoComparisonBloc(
+              photoUseCases: mockPhotoUseCases,
+              photoManagerService: mockPhotoManagerService,
+              platformService: mockPlatformService,
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          home: const PhotoSelectionPage(),
+          routes: {
+            PhotoComparisonPage.routeName: (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final photos = args['photos'] as List<Photo>;
+
+              context.read<PhotoComparisonBloc>().add(LoadSelectedPhotos(photos: photos));
+
+              return PhotoComparisonPage(selectedPhotos: photos);
+            }
+          },
+        ),
+      ),
+    );
+
+    // 1. Wait for photos to load
+    await tester.pumpAndSettle();
+
+    // 2. Select both photos
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_1')));
+    await tester.pump();
+
+    // 3. Start comparison
+    await tester.tap(find.text('Compare (2)'));
+    await tester.pumpAndSettle();
+
+    // 4. We are on the comparison page. Skip the pair.
+    expect(find.text('Skip This Pair'), findsOneWidget);
+    await tester.tap(find.text('Skip This Pair'));
+    await tester.pumpAndSettle();
+
+    // 5. The "All Pairs Skipped" dialog should appear
+    expect(find.text('Keep all remaining photos?'), findsOneWidget);
+    expect(find.text('Yes, Keep Them'), findsOneWidget);
+
+    // 6. Tap "Yes, Keep Them"
+    await tester.tap(find.text('Yes, Keep Them'));
+    await tester.pumpAndSettle();
+
+    // 7. Deletion confirmation screen should be visible
+    expect(find.text('Review Photos for Deletion'), findsOneWidget);
+    expect(find.textContaining('0 photos will be deleted'), findsOneWidget);
+    expect(find.textContaining('2 photo will be kept'), findsOneWidget);
+
+    // 8. Confirm (a no-op deletion)
+    await tester.tap(find.text('Confirm Delete'));
+    await tester.pumpAndSettle();
+
+    // 9. Verify completion screen
+    expect(find.text('Comparison Complete!'), findsOneWidget);
+    expect(find.textContaining('2 photo kept'), findsOneWidget);
+
+    // 10. Verify that delete was NOT called
+    verifyNever(mockPhotoManagerService.deleteWithIds(any));
+  });
 }

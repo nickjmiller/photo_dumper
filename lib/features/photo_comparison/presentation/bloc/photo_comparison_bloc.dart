@@ -53,6 +53,17 @@ class ConfirmDeletion extends PhotoComparisonEvent {}
 
 class CancelComparison extends PhotoComparisonEvent {}
 
+class KeepRemainingPhotos extends PhotoComparisonEvent {}
+
+class ContinueComparing extends PhotoComparisonEvent {
+  final bool dontAskAgain;
+
+  const ContinueComparing({this.dontAskAgain = false});
+
+  @override
+  List<Object> get props => [dontAskAgain];
+}
+
 // States
 abstract class PhotoComparisonState extends Equatable {
   const PhotoComparisonState();
@@ -115,17 +126,13 @@ class ComparisonComplete extends PhotoComparisonState {
   List<Object> get props => [winner];
 }
 
-class NoMorePairs extends PhotoComparisonState {
+class AllPairsSkipped extends PhotoComparisonState {
   final List<Photo> remainingPhotos;
-  final List<Photo> eliminatedPhotos;
 
-  const NoMorePairs({
-    required this.remainingPhotos,
-    required this.eliminatedPhotos,
-  });
+  const AllPairsSkipped({required this.remainingPhotos});
 
   @override
-  List<Object> get props => [remainingPhotos, eliminatedPhotos];
+  List<Object> get props => [remainingPhotos];
 }
 
 class PhotoComparisonError extends PhotoComparisonState {
@@ -150,6 +157,14 @@ class PhotoComparisonBloc
   List<Photo> _eliminatedPhotos = [];
   List<List<Photo>> _currentRoundPairs = [];
   int _currentPairIndex = 0;
+  Set<String> _skippedPairs = {};
+  bool _dontAskAgain = false;
+
+  String _getPairKey(Photo p1, Photo p2) {
+    final ids = [p1.id, p2.id];
+    ids.sort();
+    return ids.join('-');
+  }
 
   PhotoComparisonBloc({
     required this.photoUseCases,
@@ -165,6 +180,8 @@ class PhotoComparisonBloc
     on<RestartComparison>(_onRestartComparison);
     on<ConfirmDeletion>(_onConfirmDeletion);
     on<CancelComparison>(_onCancelComparison);
+    on<KeepRemainingPhotos>(_onKeepRemainingPhotos);
+    on<ContinueComparing>(_onContinueComparing);
   }
 
   Future<void> _onLoadSelectedPhotos(
@@ -177,6 +194,8 @@ class PhotoComparisonBloc
     _remainingPhotos = List.from(event.photos);
     _eliminatedPhotos = [];
     _currentPairIndex = 0;
+    _skippedPairs = {};
+    _dontAskAgain = false;
 
     _generatePairs();
     _emitCurrentState(emit);
@@ -203,15 +222,17 @@ class PhotoComparisonBloc
     SkipPair event,
     Emitter<PhotoComparisonState> emit,
   ) async {
-    emit(PhotoComparisonLoading());
+    final pairKey = _getPairKey(event.photo1, event.photo2);
+    _skippedPairs.add(pairKey);
 
-    // Remove both photos from current pair
-    _remainingPhotos.remove(event.photo1);
-    _remainingPhotos.remove(event.photo2);
-
-    // Add both back to remaining photos for future comparison
-    _remainingPhotos.add(event.photo1);
-    _remainingPhotos.add(event.photo2);
+    final n = _remainingPhotos.length;
+    if (n > 1) {
+      final totalPossiblePairs = (n * (n - 1)) / 2;
+      if (!_dontAskAgain && _skippedPairs.length >= totalPossiblePairs) {
+        emit(AllPairsSkipped(remainingPhotos: _remainingPhotos));
+        return;
+      }
+    }
 
     _nextPair(emit);
   }
@@ -231,6 +252,8 @@ class PhotoComparisonBloc
     _remainingPhotos = List.from(_allPhotos);
     _eliminatedPhotos = [];
     _currentPairIndex = 0;
+    _skippedPairs = {};
+    _dontAskAgain = false;
 
     _generatePairs();
     _emitCurrentState(emit);
@@ -296,21 +319,55 @@ class PhotoComparisonBloc
     emit(PhotoComparisonInitial());
   }
 
+  void _onKeepRemainingPhotos(
+    KeepRemainingPhotos event,
+    Emitter<PhotoComparisonState> emit,
+  ) {
+    emit(
+      DeletionConfirmation(
+        eliminatedPhotos: _eliminatedPhotos,
+        winner: _remainingPhotos,
+      ),
+    );
+  }
+
+  void _onContinueComparing(
+    ContinueComparing event,
+    Emitter<PhotoComparisonState> emit,
+  ) {
+    if (event.dontAskAgain) {
+      _dontAskAgain = true;
+    }
+    _skippedPairs.clear();
+    _generatePairs();
+    _emitCurrentState(emit);
+  }
+
   void _generatePairs() {
     _currentRoundPairs = [];
-    final shuffledPhotos = List<Photo>.from(_remainingPhotos);
-    shuffledPhotos.shuffle(_random);
-
-    for (int i = 0; i < shuffledPhotos.length - 1; i += 2) {
-      _currentRoundPairs.add([shuffledPhotos[i], shuffledPhotos[i + 1]]);
+    final allPossiblePairs = <List<Photo>>[];
+    for (int i = 0; i < _remainingPhotos.length; i++) {
+      for (int j = i + 1; j < _remainingPhotos.length; j++) {
+        allPossiblePairs.add([_remainingPhotos[i], _remainingPhotos[j]]);
+      }
     }
 
-    // Handle odd number of photos - the last photo advances automatically
-    if (shuffledPhotos.length % 2 == 1) {
-      // The last photo automatically advances to next round
-      // No need to do anything special, it will be included in next round's pairs
+    var validPairs = allPossiblePairs.where((pair) {
+      final key = _getPairKey(pair[0], pair[1]);
+      return !_skippedPairs.contains(key);
+    }).toList();
+
+    if (validPairs.isEmpty && _remainingPhotos.length > 1) {
+      if (_dontAskAgain) {
+        // User opted out and has skipped all pairs again.
+        // Reset and let them loop.
+        _skippedPairs.clear();
+        validPairs = allPossiblePairs;
+      }
     }
 
+    validPairs.shuffle(_random);
+    _currentRoundPairs = validPairs;
     _currentPairIndex = 0;
   }
 
@@ -340,12 +397,20 @@ class PhotoComparisonBloc
     // Check if we have pairs to compare
     if (_currentRoundPairs.isEmpty ||
         _currentPairIndex >= _currentRoundPairs.length) {
-      emit(
-        NoMorePairs(
-          remainingPhotos: _remainingPhotos,
-          eliminatedPhotos: _eliminatedPhotos,
-        ),
-      );
+      // If we are here, it means there are no more pairs to compare.
+      // This can happen if all pairs have been skipped.
+      if (_remainingPhotos.length > 1) {
+        emit(AllPairsSkipped(remainingPhotos: _remainingPhotos));
+      } else {
+        // This should be handled by the check for `_remainingPhotos.length == 1`
+        // but as a fallback, we go to the confirmation screen.
+        emit(
+          DeletionConfirmation(
+            eliminatedPhotos: _eliminatedPhotos,
+            winner: _remainingPhotos,
+          ),
+        );
+      }
       return;
     }
 
