@@ -81,6 +81,9 @@ class _AllPairsSkippedDialogState extends State<AllPairsSkippedDialog> {
             context.read<PhotoComparisonBloc>().add(KeepRemainingPhotos());
             Navigator.of(context).pop();
           },
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          ),
           child: const Text('Yes, Keep Them'),
         ),
       ],
