@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/data/datasources/photo_library_datasource.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
+// ignore: unused_import
 import 'package:dartz/dartz.dart';
 import 'package:photo_dumper/core/error/failures.dart';
 
