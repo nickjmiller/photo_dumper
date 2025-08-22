@@ -64,9 +64,9 @@ void main() {
 
     // Stub the services needed by PhotoComparisonBloc
     when(mockPlatformService.isAndroid).thenReturn(false);
-    when(
-      mockPhotoManagerService.deleteWithIds(any),
-    ).thenAnswer((_) async => []);
+    when(mockPhotoManagerService.deleteWithIds(any)).thenAnswer(
+      (invocation) async => invocation.positionalArguments[0] as List<String>,
+    );
 
     // TODO: Integration tests are disabled because the UI flow has changed significantly
     when(

@@ -122,9 +122,10 @@ void main() {
         'emits [ComparisonComplete] when deletion is successful',
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
-          when(
-            mockPhotoManagerService.deleteWithIds(any),
-          ).thenAnswer((_) async => []);
+          when(mockPhotoManagerService.deleteWithIds(any)).thenAnswer(
+            (invocation) async =>
+                invocation.positionalArguments[0] as List<String>,
+          );
           when(
             mockComparisonUseCases.deleteComparisonSession(any),
           ).thenAnswer((_) async => const Right(null));

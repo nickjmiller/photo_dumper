@@ -170,29 +170,31 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (showAddPhotosButton)
-                      FloatingActionButton.extended(
-                        onPressed: () async {
-                          final bloc = context.read<PhotoSelectionBloc>();
-                          await PhotoManager.presentLimited();
-                          if (mounted) {
-                            bloc.add(LoadPhotos());
-                          }
-                        },
-                        label: const Text('Add more photos'),
-                        icon: const Icon(Icons.add_a_photo),
-                        heroTag: 'add_photos',
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: FloatingActionButton.extended(
+                          onPressed: () async {
+                            final bloc = context.read<PhotoSelectionBloc>();
+                            await PhotoManager.presentLimited();
+                            if (mounted) {
+                              bloc.add(LoadPhotos());
+                            }
+                          },
+                          label: const Text('Add more photos'),
+                          icon: const Icon(Icons.add_a_photo),
+                          heroTag: 'add_photos',
+                        ),
                       ),
-                    if (showCompareButton) ...[
-                      const SizedBox(height: 16),
+                    if (showCompareButton)
                       FloatingActionButton.extended(
                         onPressed: () => _startComparison(state.selectedPhotos),
                         label: Text('Compare (${state.selectedPhotos.length})'),
                         icon: const Icon(Icons.compare_arrows),
                         heroTag: 'compare',
                       ),
-                    ],
                   ],
                 );
               }
