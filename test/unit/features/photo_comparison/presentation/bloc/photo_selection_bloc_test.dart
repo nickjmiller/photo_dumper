@@ -60,8 +60,9 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionLoaded] when photos are loaded successfully',
         build: () {
-          when(mockPermissionService.requestPhotoPermission())
-              .thenAnswer((_) async => PermissionState.authorized);
+          when(
+            mockPermissionService.requestPhotoPermission(),
+          ).thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => const Right([]));
@@ -82,8 +83,9 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading locked IDs fails',
         build: () {
-          when(mockPermissionService.requestPhotoPermission())
-              .thenAnswer((_) async => PermissionState.authorized);
+          when(
+            mockPermissionService.requestPhotoPermission(),
+          ).thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => Left(CacheFailure('Failed')));
@@ -102,8 +104,9 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading photos fails',
         build: () {
-          when(mockPermissionService.requestPhotoPermission())
-              .thenAnswer((_) async => PermissionState.authorized);
+          when(
+            mockPermissionService.requestPhotoPermission(),
+          ).thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => const Right([]));
@@ -122,8 +125,9 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionPermissionError] when permission is denied',
         build: () {
-          when(mockPermissionService.requestPhotoPermission())
-              .thenAnswer((_) async => PermissionState.denied);
+          when(
+            mockPermissionService.requestPhotoPermission(),
+          ).thenAnswer((_) async => PermissionState.denied);
           return bloc;
         },
         act: (bloc) => bloc.add(LoadPhotos()),

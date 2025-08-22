@@ -20,78 +20,84 @@ void main() {
     });
 
     testWidgets(
-        'should display centered add photos button when permission is denied',
-        (WidgetTester tester) async {
-      whenListen(
-        mockPhotoSelectionBloc,
-        Stream.fromIterable([
-          const PhotoSelectionPermissionError(PermissionState.denied),
-        ]),
-        initialState: const PhotoSelectionPermissionError(PermissionState.denied),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<PhotoSelectionBloc>.value(
-            value: mockPhotoSelectionBloc,
-            child: const PhotoSelectionPage(),
+      'should display centered add photos button when permission is denied',
+      (WidgetTester tester) async {
+        whenListen(
+          mockPhotoSelectionBloc,
+          Stream.fromIterable([
+            const PhotoSelectionPermissionError(PermissionState.denied),
+          ]),
+          initialState: const PhotoSelectionPermissionError(
+            PermissionState.denied,
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-
-      expect(find.text('Add photos'), findsOneWidget);
-    });
-
-    testWidgets('should display centered add photos button when no photos are loaded',
-        (WidgetTester tester) async {
-      whenListen(
-        mockPhotoSelectionBloc,
-        Stream.fromIterable([
-          const PhotoSelectionLoaded(allPhotos: []),
-        ]),
-        initialState: const PhotoSelectionLoaded(allPhotos: []),
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<PhotoSelectionBloc>.value(
-            value: mockPhotoSelectionBloc,
-            child: const PhotoSelectionPage(),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider<PhotoSelectionBloc>.value(
+              value: mockPhotoSelectionBloc,
+              child: const PhotoSelectionPage(),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
+        await tester.pump();
 
-      expect(find.text('Add photos'), findsOneWidget);
-    });
+        expect(find.text('Add photos'), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'should display add more photos button when hasLimitedAccess is true',
-        (WidgetTester tester) async {
-      whenListen(
-        mockPhotoSelectionBloc,
-        Stream.fromIterable([
-          const PhotoSelectionLoaded(allPhotos: [], hasLimitedAccess: true),
-        ]),
-        initialState:
-            const PhotoSelectionLoaded(allPhotos: [], hasLimitedAccess: true),
-      );
+      'should display centered add photos button when no photos are loaded',
+      (WidgetTester tester) async {
+        whenListen(
+          mockPhotoSelectionBloc,
+          Stream.fromIterable([const PhotoSelectionLoaded(allPhotos: [])]),
+          initialState: const PhotoSelectionLoaded(allPhotos: []),
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: BlocProvider<PhotoSelectionBloc>.value(
-            value: mockPhotoSelectionBloc,
-            child: const PhotoSelectionPage(),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider<PhotoSelectionBloc>.value(
+              value: mockPhotoSelectionBloc,
+              child: const PhotoSelectionPage(),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
+        await tester.pump();
 
-      expect(find.text('Add more photos'), findsOneWidget);
-    });
+        expect(find.text('Add photos'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should display add more photos button when hasLimitedAccess is true',
+      (WidgetTester tester) async {
+        whenListen(
+          mockPhotoSelectionBloc,
+          Stream.fromIterable([
+            const PhotoSelectionLoaded(allPhotos: [], hasLimitedAccess: true),
+          ]),
+          initialState: const PhotoSelectionLoaded(
+            allPhotos: [],
+            hasLimitedAccess: true,
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider<PhotoSelectionBloc>.value(
+              value: mockPhotoSelectionBloc,
+              child: const PhotoSelectionPage(),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(find.text('Add more photos'), findsOneWidget);
+      },
+    );
   });
 }

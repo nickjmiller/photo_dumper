@@ -30,6 +30,7 @@ import 'photo_comparison_flow_test.mocks.dart';
   PermissionService,
 ])
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late MockPhotoUseCases mockPhotoUseCases;
   late MockComparisonUseCases mockComparisonUseCases;
   late MockPhotoManagerService mockPhotoManagerService;

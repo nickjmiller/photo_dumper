@@ -161,8 +161,7 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
           },
         ),
       ),
-      floatingActionButton:
-          BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
+      floatingActionButton: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
         builder: (context, state) {
           bool showCompareButton =
               state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2;
@@ -185,14 +184,16 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
               if (showCompareButton) ...[
                 const SizedBox(height: 16),
                 FloatingActionButton.extended(
-                  onPressed: () =>
-                      _startComparison((state as PhotoSelectionLoaded).selectedPhotos),
+                  onPressed: () => _startComparison(
+                    (state as PhotoSelectionLoaded).selectedPhotos,
+                  ),
                   label: Text(
-                      'Compare (${(state as PhotoSelectionLoaded).selectedPhotos.length})'),
+                    'Compare (${(state as PhotoSelectionLoaded).selectedPhotos.length})',
+                  ),
                   icon: const Icon(Icons.compare_arrows),
                   heroTag: 'compare',
                 ),
-              ]
+              ],
             ],
           );
         },

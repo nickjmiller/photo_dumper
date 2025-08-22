@@ -98,7 +98,7 @@ void main() {
     late MockPhotoLibraryDataSourceEmpty mockDataSourceEmpty;
     late MockPhotoLibraryDataSourceThrowsException mockDataSourceThrows;
     late MockPhotoLibraryDataSourcePermissionDenied
-        mockDataSourcePermissionDenied;
+    mockDataSourcePermissionDenied;
 
     setUp(() {
       mockDataSource = MockPhotoLibraryDataSource();

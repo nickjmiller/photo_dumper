@@ -278,8 +278,9 @@ void main() {
       },
     );
 
-    testWidgets('should display snackbar when state is PhotoDeletionFailure',
-        (WidgetTester tester) async {
+    testWidgets('should display snackbar when state is PhotoDeletionFailure', (
+      WidgetTester tester,
+    ) async {
       final photo1 = createMockPhoto(id: 'photo1');
       final photo2 = createMockPhoto(id: 'photo2');
       final initialState = DeletionConfirmation(
@@ -304,20 +305,21 @@ void main() {
           home: Scaffold(
             body: BlocProvider<PhotoComparisonBloc>.value(
               value: mockBloc,
-              child: PhotoComparisonPage(
-                selectedPhotos: [photo1, photo2],
-              ),
+              child: PhotoComparisonPage(selectedPhotos: [photo1, photo2]),
             ),
           ),
         ),
       );
 
-      await tester.pump(); // Pump once for the listener to pick up the new state
+      await tester
+          .pump(); // Pump once for the listener to pick up the new state
 
       expect(
-          find.text(
-              'Unable to delete the photos, please grant access to delete the photos when prompted.'),
-          findsOneWidget);
+        find.text(
+          'Unable to delete the photos, please grant access to delete the photos when prompted.',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

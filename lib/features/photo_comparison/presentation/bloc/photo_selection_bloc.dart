@@ -56,8 +56,12 @@ class PhotoSelectionLoaded extends PhotoSelectionState {
   });
 
   @override
-  List<Object> get props =>
-      [allPhotos, selectedPhotos, lockedPhotoIds, hasLimitedAccess];
+  List<Object> get props => [
+    allPhotos,
+    selectedPhotos,
+    lockedPhotoIds,
+    hasLimitedAccess,
+  ];
 
   PhotoSelectionLoaded copyWith({
     List<Photo>? allPhotos,

@@ -18,10 +18,12 @@ class PhotoRepositoryImpl implements PhotoRepository {
       final photos = await _photoLibraryDataSource.getPhotosFromGallery();
       return Right(photos);
     } on PhotoPermissionException catch (e) {
-      return Left(PhotoPermissionFailure(
-        e.permissionState,
-        'Photo library permission not granted.',
-      ));
+      return Left(
+        PhotoPermissionFailure(
+          e.permissionState,
+          'Photo library permission not granted.',
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure('Failed to fetch photos from gallery: $e'));
     }
