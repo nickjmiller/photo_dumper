@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:photo_manager/photo_manager.dart';
 import '../../domain/entities/photo.dart';
 import '../bloc/photo_selection_bloc.dart';
 import '../widgets/selectable_photo_card.dart';
@@ -35,6 +36,35 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
           if (!mounted) return;
           context.read<PhotoSelectionBloc>().add(LoadPhotos());
         });
+  }
+
+  Widget _buildAddPhotosCenteredButton() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.photo_library_outlined,
+            size: 60,
+            color: Colors.grey,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No photos found or permission denied.',
+            style: TextStyle(fontSize: 18),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.read<PhotoSelectionBloc>().add(LoadPhotos());
+            },
+            icon: const Icon(Icons.add_a_photo),
+            label: const Text('Add photos'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -73,6 +103,9 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
             }
 
             if (state is PhotoSelectionLoaded) {
+              if (state.allPhotos.isEmpty) {
+                return _buildAddPhotosCenteredButton();
+              }
               return GridView.builder(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
@@ -94,7 +127,9 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
                 },
               );
             }
-
+            if (state is PhotoSelectionPermissionError) {
+              return _buildAddPhotosCenteredButton();
+            }
             if (state is PhotoSelectionError) {
               return Center(
                 child: Column(
@@ -128,18 +163,40 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       ),
       floatingActionButton:
           BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
-            builder: (context, state) {
-              if (state is PhotoSelectionLoaded &&
-                  state.selectedPhotos.length >= 2) {
-                return FloatingActionButton.extended(
-                  onPressed: () => _startComparison(state.selectedPhotos),
-                  label: Text('Compare (${state.selectedPhotos.length})'),
+        builder: (context, state) {
+          bool showCompareButton =
+              state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2;
+          bool showAddPhotosButton =
+              state is PhotoSelectionLoaded && state.hasLimitedAccess;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showAddPhotosButton)
+                FloatingActionButton.extended(
+                  onPressed: () async {
+                    await PhotoManager.presentLimited();
+                    context.read<PhotoSelectionBloc>().add(LoadPhotos());
+                  },
+                  label: const Text('Add more photos'),
+                  icon: const Icon(Icons.add_a_photo),
+                  heroTag: 'add_photos',
+                ),
+              if (showCompareButton) ...[
+                const SizedBox(height: 16),
+                FloatingActionButton.extended(
+                  onPressed: () =>
+                      _startComparison((state as PhotoSelectionLoaded).selectedPhotos),
+                  label: Text(
+                      'Compare (${(state as PhotoSelectionLoaded).selectedPhotos.length})'),
                   icon: const Icon(Icons.compare_arrows),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                  heroTag: 'compare',
+                ),
+              ]
+            ],
+          );
+        },
+      ),
     );
   }
 }

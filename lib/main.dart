@@ -31,6 +31,7 @@ class PhotoDumperApp extends StatelessWidget {
           create: (context) => PhotoSelectionBloc(
             photoUseCases: getIt(),
             comparisonUseCases: getIt(),
+            permissionService: getIt(),
           ),
         ),
         BlocProvider(

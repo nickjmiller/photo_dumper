@@ -200,7 +200,7 @@ void main() {
       );
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoComparisonError] when deletion fails on a non-Android platform',
+        'emits [PhotoDeletionFailure] when deletion fails',
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
           when(
@@ -214,7 +214,7 @@ void main() {
           bloc.add(ConfirmDeletion());
         },
         skip: 3,
-        expect: () => [isA<PhotoComparisonError>()],
+        expect: () => [isA<PhotoDeletionFailure>()],
       );
     });
   });

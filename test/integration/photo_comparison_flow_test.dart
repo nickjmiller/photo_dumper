@@ -17,6 +17,8 @@ import 'package:photo_dumper/features/photo_comparison/presentation/bloc/compari
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/comparison_list_page.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/widgets/photo_card.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
+import 'package:photo_dumper/core/services/permission_service.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 import 'photo_comparison_flow_test.mocks.dart';
 
@@ -25,12 +27,14 @@ import 'photo_comparison_flow_test.mocks.dart';
   PhotoManagerService,
   PlatformService,
   ComparisonUseCases,
+  PermissionService,
 ])
 void main() {
   late MockPhotoUseCases mockPhotoUseCases;
   late MockComparisonUseCases mockComparisonUseCases;
   late MockPhotoManagerService mockPhotoManagerService;
   late MockPlatformService mockPlatformService;
+  late MockPermissionService mockPermissionService;
 
   final testPhotos = List.generate(
     3, // Use 3 photos for a 2-round tournament
@@ -47,6 +51,7 @@ void main() {
     mockComparisonUseCases = MockComparisonUseCases();
     mockPhotoManagerService = MockPhotoManagerService();
     mockPlatformService = MockPlatformService();
+    mockPermissionService = MockPermissionService();
 
     // Stub the successful photo fetch on the use cases
     when(
@@ -76,6 +81,8 @@ void main() {
       mockComparisonUseCases.getComparisonSessions(),
     ).thenAnswer((_) async => const Right([]));
 
+    when(mockPermissionService.requestPhotoPermission())
+        .thenAnswer((_) async => PermissionState.authorized);
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
@@ -83,6 +90,7 @@ void main() {
             create: (_) => PhotoSelectionBloc(
               photoUseCases: mockPhotoUseCases,
               comparisonUseCases: mockComparisonUseCases,
+              permissionService: mockPermissionService,
             ),
           ),
           BlocProvider<PhotoComparisonBloc>(

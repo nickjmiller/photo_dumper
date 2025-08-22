@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:photo_manager/photo_manager.dart';
+import '../../../../core/error/failures.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/usecases/comparison_usecases.dart';
 import '../../domain/usecases/photo_usecases.dart';
+import '../../../../core/services/permission_service.dart';
 
 // Events
 abstract class PhotoSelectionEvent extends Equatable {
@@ -43,25 +46,30 @@ class PhotoSelectionLoaded extends PhotoSelectionState {
   final List<Photo> allPhotos;
   final List<Photo> selectedPhotos;
   final Set<String> lockedPhotoIds;
+  final bool hasLimitedAccess;
 
   const PhotoSelectionLoaded({
     required this.allPhotos,
     this.selectedPhotos = const [],
     this.lockedPhotoIds = const {},
+    this.hasLimitedAccess = false,
   });
 
   @override
-  List<Object> get props => [allPhotos, selectedPhotos, lockedPhotoIds];
+  List<Object> get props =>
+      [allPhotos, selectedPhotos, lockedPhotoIds, hasLimitedAccess];
 
   PhotoSelectionLoaded copyWith({
     List<Photo>? allPhotos,
     List<Photo>? selectedPhotos,
     Set<String>? lockedPhotoIds,
+    bool? hasLimitedAccess,
   }) {
     return PhotoSelectionLoaded(
       allPhotos: allPhotos ?? this.allPhotos,
       selectedPhotos: selectedPhotos ?? this.selectedPhotos,
       lockedPhotoIds: lockedPhotoIds ?? this.lockedPhotoIds,
+      hasLimitedAccess: hasLimitedAccess ?? this.hasLimitedAccess,
     );
   }
 }
@@ -84,14 +92,25 @@ class PhotoSelectionError extends PhotoSelectionState {
   List<Object> get props => [message];
 }
 
+class PhotoSelectionPermissionError extends PhotoSelectionState {
+  final PermissionState permissionState;
+
+  const PhotoSelectionPermissionError(this.permissionState);
+
+  @override
+  List<Object> get props => [permissionState];
+}
+
 class PhotoSelectionBloc
     extends Bloc<PhotoSelectionEvent, PhotoSelectionState> {
   final PhotoUseCases photoUseCases;
   final ComparisonUseCases comparisonUseCases;
+  final PermissionService permissionService;
 
   PhotoSelectionBloc({
     required this.photoUseCases,
     required this.comparisonUseCases,
+    required this.permissionService,
   }) : super(PhotoSelectionInitial()) {
     on<LoadPhotos>(_onLoadPhotos);
     on<TogglePhotoSelection>(_onTogglePhotoSelection);
@@ -105,27 +124,38 @@ class PhotoSelectionBloc
   ) async {
     emit(PhotoSelectionLoading());
 
-    final lockedIdsResult = await comparisonUseCases.getAllPhotoIdsInUse();
-    final photosResult = await photoUseCases.getPhotosFromGallery();
+    final permissionState = await permissionService.requestPhotoPermission();
+    if (permissionState != PermissionState.authorized &&
+        permissionState != PermissionState.limited) {
+      emit(PhotoSelectionPermissionError(permissionState));
+      return;
+    }
 
+    final lockedIdsResult = await comparisonUseCases.getAllPhotoIdsInUse();
     if (lockedIdsResult.isLeft()) {
       emit(const PhotoSelectionError('Could not load session data.'));
       return;
     }
-
-    if (photosResult.isLeft()) {
-      emit(const PhotoSelectionError('Could not load photos from gallery.'));
-      return;
-    }
-
     final lockedIds = lockedIdsResult.getOrElse(() => []);
-    final photos = photosResult.getOrElse(() => []);
 
-    emit(
-      PhotoSelectionLoaded(
-        allPhotos: photos,
-        lockedPhotoIds: lockedIds.toSet(),
-      ),
+    final photosResult = await photoUseCases.getPhotosFromGallery();
+    photosResult.fold(
+      (failure) {
+        if (failure is PhotoPermissionFailure) {
+          emit(PhotoSelectionPermissionError(failure.permissionState));
+        } else {
+          emit(PhotoSelectionError(failure.message));
+        }
+      },
+      (photos) {
+        emit(
+          PhotoSelectionLoaded(
+            allPhotos: photos,
+            lockedPhotoIds: lockedIds.toSet(),
+            hasLimitedAccess: permissionState == PermissionState.limited,
+          ),
+        );
+      },
     );
   }
 

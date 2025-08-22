@@ -8,6 +8,7 @@ import 'dart:async' as _i6;
 import 'package:dartz/dartz.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:photo_dumper/core/error/failures.dart' as _i7;
+import 'package:photo_dumper/core/services/permission_service.dart' as _i14;
 import 'package:photo_dumper/core/services/platform_service.dart' as _i11;
 import 'package:photo_dumper/features/photo_comparison/domain/entities/comparison_session.dart'
     as _i13;
@@ -236,4 +237,23 @@ class MockComparisonUseCases extends _i1.Mock
                 ),
           )
           as _i6.Future<_i3.Either<_i7.Failure, List<String>>>);
+}
+
+/// A class which mocks [PermissionService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPermissionService extends _i1.Mock implements _i14.PermissionService {
+  MockPermissionService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.Future<_i10.PermissionState> requestPhotoPermission() =>
+      (super.noSuchMethod(
+            Invocation.method(#requestPhotoPermission, []),
+            returnValue: _i6.Future<_i10.PermissionState>.value(
+              _i10.PermissionState.notDetermined,
+            ),
+          )
+          as _i6.Future<_i10.PermissionState>);
 }

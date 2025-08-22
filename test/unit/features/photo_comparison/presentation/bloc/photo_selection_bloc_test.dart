@@ -8,14 +8,17 @@ import 'package:photo_dumper/features/photo_comparison/domain/usecases/compariso
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/photo_usecases.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
 import 'package:photo_dumper/core/error/failures.dart';
+import 'package:photo_manager/photo_manager.dart';
+import 'package:photo_dumper/core/services/permission_service.dart';
 
 import 'photo_selection_bloc_test.mocks.dart';
 
-@GenerateMocks([PhotoUseCases, ComparisonUseCases])
+@GenerateMocks([PhotoUseCases, ComparisonUseCases, PermissionService])
 void main() {
   group('PhotoSelectionBloc', () {
     late MockPhotoUseCases mockPhotoUseCases;
     late MockComparisonUseCases mockComparisonUseCases;
+    late MockPermissionService mockPermissionService;
     late PhotoSelectionBloc bloc;
     final testPhotos = [
       Photo(
@@ -37,9 +40,11 @@ void main() {
     setUp(() {
       mockPhotoUseCases = MockPhotoUseCases();
       mockComparisonUseCases = MockComparisonUseCases();
+      mockPermissionService = MockPermissionService();
       bloc = PhotoSelectionBloc(
         photoUseCases: mockPhotoUseCases,
         comparisonUseCases: mockComparisonUseCases,
+        permissionService: mockPermissionService,
       );
     });
 
@@ -55,6 +60,8 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionLoaded] when photos are loaded successfully',
         build: () {
+          when(mockPermissionService.requestPhotoPermission())
+              .thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => const Right([]));
@@ -75,6 +82,8 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading locked IDs fails',
         build: () {
+          when(mockPermissionService.requestPhotoPermission())
+              .thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => Left(CacheFailure('Failed')));
@@ -93,6 +102,8 @@ void main() {
       blocTest<PhotoSelectionBloc, PhotoSelectionState>(
         'should emit [PhotoSelectionLoading, PhotoSelectionError] when loading photos fails',
         build: () {
+          when(mockPermissionService.requestPhotoPermission())
+              .thenAnswer((_) async => PermissionState.authorized);
           when(
             mockComparisonUseCases.getAllPhotoIdsInUse(),
           ).thenAnswer((_) async => const Right([]));
@@ -105,6 +116,24 @@ void main() {
         expect: () => [
           isA<PhotoSelectionLoading>(),
           isA<PhotoSelectionError>(),
+        ],
+      );
+
+      blocTest<PhotoSelectionBloc, PhotoSelectionState>(
+        'should emit [PhotoSelectionLoading, PhotoSelectionPermissionError] when permission is denied',
+        build: () {
+          when(mockPermissionService.requestPhotoPermission())
+              .thenAnswer((_) async => PermissionState.denied);
+          return bloc;
+        },
+        act: (bloc) => bloc.add(LoadPhotos()),
+        expect: () => [
+          isA<PhotoSelectionLoading>(),
+          isA<PhotoSelectionPermissionError>().having(
+            (s) => s.permissionState,
+            'permissionState',
+            PermissionState.denied,
+          ),
         ],
       );
     });

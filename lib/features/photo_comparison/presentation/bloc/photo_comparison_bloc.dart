@@ -159,6 +159,21 @@ class PhotoComparisonError extends PhotoComparisonState {
   List<Object> get props => [message];
 }
 
+class PhotoDeletionFailure extends PhotoComparisonState {
+  final List<Photo> eliminatedPhotos;
+  final List<Photo> winner;
+  final String message;
+
+  const PhotoDeletionFailure({
+    required this.eliminatedPhotos,
+    required this.winner,
+    required this.message,
+  });
+
+  @override
+  List<Object> get props => [eliminatedPhotos, winner, message];
+}
+
 class PhotoComparisonBloc
     extends Bloc<PhotoComparisonEvent, PhotoComparisonState> {
   final PhotoUseCases photoUseCases;
@@ -373,9 +388,13 @@ class PhotoComparisonBloc
 
       emit(ComparisonComplete(winner: _remainingPhotos));
     } catch (e) {
-      // This single catch block will now handle failures from both moveToTrash (if it's a real error)
-      // and deleteWithIds, ensuring a PhotoComparisonError is always emitted on failure.
-      emit(PhotoComparisonError('Failed to delete photos: $e'));
+      emit(
+        PhotoDeletionFailure(
+          eliminatedPhotos: _eliminatedPhotos,
+          winner: _remainingPhotos,
+          message: 'Failed to delete photos. Please try again.',
+        ),
+      );
     }
   }
 

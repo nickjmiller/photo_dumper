@@ -236,6 +236,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
           create: (context) => PhotoSelectionBloc(
             photoUseCases: getIt(),
             comparisonUseCases: getIt(),
+            permissionService: getIt(),
           ),
           child: const PhotoSelectionPage(),
         ),
@@ -294,7 +295,17 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
             Navigator.of(context).pop();
             return;
           }
-          if (state is PhotoComparisonError) {
+          if (state is PhotoDeletionFailure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Unable to delete the photos, please grant access to delete the photos when prompted.',
+                ),
+                duration: AppConstants.snackbarDuration,
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          } else if (state is PhotoComparisonError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -470,7 +481,17 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
             }
 
             if (state is DeletionConfirmation) {
-              return _buildDeletionConfirmationScreen(state);
+              return _buildDeletionConfirmationScreen(
+                state.eliminatedPhotos,
+                state.winner,
+              );
+            }
+
+            if (state is PhotoDeletionFailure) {
+              return _buildDeletionConfirmationScreen(
+                state.eliminatedPhotos,
+                state.winner,
+              );
             }
 
             if (state is ComparisonComplete) {
@@ -486,7 +507,10 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
     );
   }
 
-  Widget _buildDeletionConfirmationScreen(DeletionConfirmation state) {
+  Widget _buildDeletionConfirmationScreen(
+    List<Photo> eliminatedPhotos,
+    List<Photo> winner,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -505,7 +529,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
           ),
           const SizedBox(height: 8),
           Text(
-            '${state.eliminatedPhotos.length} photos will be deleted\n${state.winner.length} photo will be kept',
+            '${eliminatedPhotos.length} photos will be deleted\n${winner.length} photo will be kept',
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -527,9 +551,9 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
                         ),
-                    itemCount: state.eliminatedPhotos.length,
+                    itemCount: eliminatedPhotos.length,
                     itemBuilder: (context, index) {
-                      final photo = state.eliminatedPhotos[index];
+                      final photo = eliminatedPhotos[index];
                       return Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),

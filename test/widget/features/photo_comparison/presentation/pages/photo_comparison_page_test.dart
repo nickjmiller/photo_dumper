@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
@@ -15,6 +16,10 @@ class MockPhotoUseCases extends Mock implements PhotoUseCases {}
 class MockComparisonUseCases extends Mock implements ComparisonUseCases {}
 
 class MockPhotoRepositoryImpl extends Mock implements PhotoRepositoryImpl {}
+
+class MockPhotoComparisonBloc
+    extends MockBloc<PhotoComparisonEvent, PhotoComparisonState>
+    implements PhotoComparisonBloc {}
 
 Photo createMockPhoto({String? id, String? imagePath}) {
   return Photo(
@@ -272,5 +277,47 @@ void main() {
         // and resets drag state when new photos are loaded
       },
     );
+
+    testWidgets('should display snackbar when state is PhotoDeletionFailure',
+        (WidgetTester tester) async {
+      final photo1 = createMockPhoto(id: 'photo1');
+      final photo2 = createMockPhoto(id: 'photo2');
+      final initialState = DeletionConfirmation(
+        eliminatedPhotos: [photo2],
+        winner: [photo1],
+      );
+      final deletionFailureState = PhotoDeletionFailure(
+        eliminatedPhotos: [photo2],
+        winner: [photo1],
+        message: 'Deletion failed',
+      );
+
+      final mockBloc = MockPhotoComparisonBloc();
+      whenListen(
+        mockBloc,
+        Stream.fromIterable([initialState, deletionFailureState]),
+        initialState: initialState,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BlocProvider<PhotoComparisonBloc>.value(
+              value: mockBloc,
+              child: PhotoComparisonPage(
+                selectedPhotos: [photo1, photo2],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(); // Pump once for the listener to pick up the new state
+
+      expect(
+          find.text(
+              'Unable to delete the photos, please grant access to delete the photos when prompted.'),
+          findsOneWidget);
+    });
   });
 }
