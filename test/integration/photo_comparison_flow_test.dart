@@ -82,8 +82,9 @@ void main() {
       mockComparisonUseCases.getComparisonSessions(),
     ).thenAnswer((_) async => const Right([]));
 
-    when(mockPermissionService.requestPhotoPermission())
-        .thenAnswer((_) async => PermissionState.authorized);
+    when(
+      mockPermissionService.requestPhotoPermission(),
+    ).thenAnswer((_) async => PermissionState.authorized);
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
@@ -141,7 +142,7 @@ void main() {
 
     // 5. Start comparison
     await tester.tap(find.text('Compare (3)'));
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // 6. We are now on the PhotoComparisonPage. Verify it.
     expect(find.byType(PhotoComparisonPage), findsOneWidget);
@@ -150,11 +151,11 @@ void main() {
     // 7. Complete the tournament. With 3 photos, this takes 2 rounds.
     // Round 1: Tap the first PhotoCard to select it as the winner.
     await tester.tap(find.byType(PhotoCard).first);
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // Round 2: A new pair is shown. Tap the first PhotoCard again.
     await tester.tap(find.byType(PhotoCard).first);
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // 8. Deletion confirmation screen should be visible
     expect(find.text('Review Photos for Deletion'), findsOneWidget);
@@ -162,7 +163,7 @@ void main() {
 
     // 9. Confirm deletion
     await tester.tap(find.text('Confirm Delete'));
-    await tester.pumpAndSettle();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // 10. Verify completion screen
     expect(find.text('Comparison Complete!'), findsOneWidget);
