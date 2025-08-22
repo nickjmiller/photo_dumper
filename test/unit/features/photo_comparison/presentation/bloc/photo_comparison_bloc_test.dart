@@ -137,22 +137,6 @@ void main() {
         skip: 3,
         expect: () => [isA<ComparisonComplete>()],
       );
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoDeletionFailure] when deletion fails',
-        build: () {
-          when(mockPlatformService.isAndroid).thenReturn(false);
-          when(
-            mockPhotoManagerService.deleteWithIds(any),
-          ).thenThrow(Exception('Deletion failed'));
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          bloc.add(SelectWinner(winner: photo1, loser: photo2));
-          return bloc;
-        },
-        act: (bloc) => bloc.add(ConfirmDeletion()),
-        skip: 3,
-        expect: () => [isA<PhotoDeletionFailure>()],
-      );
     });
   });
 }

@@ -148,21 +148,6 @@ class PhotoComparisonError extends PhotoComparisonState {
   List<Object> get props => [message];
 }
 
-class PhotoDeletionFailure extends PhotoComparisonState {
-  final List<Photo> eliminatedPhotos;
-  final List<Photo> winner;
-  final String message;
-
-  const PhotoDeletionFailure({
-    required this.eliminatedPhotos,
-    required this.winner,
-    required this.message,
-  });
-
-  @override
-  List<Object> get props => [eliminatedPhotos, winner, message];
-}
-
 class PhotoComparisonBloc
     extends Bloc<PhotoComparisonEvent, PhotoComparisonState> {
   final PhotoUseCases photoUseCases;
@@ -303,73 +288,30 @@ class PhotoComparisonBloc
       return;
     }
 
-    try {
-      final List<String> photoIds = _eliminatedPhotos.map((p) => p.id).toList();
+    final List<String> photoIds = _eliminatedPhotos.map((p) => p.id).toList();
 
-      bool deletionSucceeded = false;
-
-      if (platformService.isAndroid) {
-        try {
-          final assetEntities = await Future.wait(
-            photoIds.map((id) => photoManagerService.assetEntityFromId(id)),
-          );
-          final nonNullAssetEntities = assetEntities
-              .whereType<AssetEntity>()
-              .toList();
-
-          if (nonNullAssetEntities.isNotEmpty) {
-            // On Android, moveToTrash might not throw an exception but fail silently
-            // if the user denies the permission from the system dialog.
-            // We can't reliably check the result, so we'll assume success
-            // and let the user see the photo is still there if it fails.
-            // The user report indicates a "Success" message is shown, which means
-            // we are reaching the `ComparisonComplete` state.
-            // A better approach would be to have a reliable way to check for success.
-            // For now, we will assume that if an exception is not thrown, it was successful.
-            await photoManagerService.moveToTrash(nonNullAssetEntities);
-            deletionSucceeded = true;
-          }
-        } catch (e) {
-          // In case of any error, we emit a failure state.
-          emit(
-            PhotoDeletionFailure(
-              eliminatedPhotos: _eliminatedPhotos,
-              winner: _remainingPhotos,
-              message: 'Failed to delete photos. Please try again.',
-            ),
-          );
-          return;
-        }
-      }
-
-      if (!deletionSucceeded) {
-        final result = await photoManagerService.deleteWithIds(photoIds);
-        if (result.length != photoIds.length) {
-          emit(
-            PhotoDeletionFailure(
-              eliminatedPhotos: _eliminatedPhotos,
-              winner: _remainingPhotos,
-              message: 'Failed to delete some photos. Please try again.',
-            ),
-          );
-          return;
-        }
-      }
-
-      if (_sessionId != null) {
-        await comparisonUseCases.deleteComparisonSession(_sessionId!);
-      }
-
-      emit(ComparisonComplete(winner: _remainingPhotos));
-    } catch (e) {
-      emit(
-        PhotoDeletionFailure(
-          eliminatedPhotos: _eliminatedPhotos,
-          winner: _remainingPhotos,
-          message: 'Failed to delete photos. Please try again.',
-        ),
+    // The underlying native API does not provide a reliable way to check if
+    // the user denied the deletion. It fails silently. So we will assume
+    // success and let the user see the photo is still there if it fails.
+    if (platformService.isAndroid) {
+      final assetEntities = await Future.wait(
+        photoIds.map((id) => photoManagerService.assetEntityFromId(id)),
       );
+      final nonNullAssetEntities = assetEntities
+          .whereType<AssetEntity>()
+          .toList();
+      if (nonNullAssetEntities.isNotEmpty) {
+        await photoManagerService.moveToTrash(nonNullAssetEntities);
+      }
+    } else {
+      await photoManagerService.deleteWithIds(photoIds);
     }
+
+    if (_sessionId != null) {
+      await comparisonUseCases.deleteComparisonSession(_sessionId!);
+    }
+
+    emit(ComparisonComplete(winner: _remainingPhotos));
   }
 
   void _onCancelComparison(

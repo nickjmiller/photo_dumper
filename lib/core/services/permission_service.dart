@@ -4,8 +4,7 @@ class PermissionService {
   Future<PermissionState> requestPhotoPermission() {
     const requestOption = PermissionRequestOption(
       androidPermission: AndroidPermission(
-        type:
-            RequestType.all, // Use .all to get correct limited state on Android
+        type: RequestType.common,
         mediaLocation: false, // My app doesn't need location
       ),
     );

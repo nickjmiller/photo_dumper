@@ -295,17 +295,7 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
             Navigator.of(context).pop();
             return;
           }
-          if (state is PhotoDeletionFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                  'Unable to delete the photos, please grant access to delete the photos when prompted.',
-                ),
-                duration: AppConstants.snackbarDuration,
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
-          } else if (state is PhotoComparisonError) {
+          if (state is PhotoComparisonError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -481,13 +471,6 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
             }
 
             if (state is DeletionConfirmation) {
-              return _buildDeletionConfirmationScreen(
-                state.eliminatedPhotos,
-                state.winner,
-              );
-            }
-
-            if (state is PhotoDeletionFailure) {
               return _buildDeletionConfirmationScreen(
                 state.eliminatedPhotos,
                 state.winner,
