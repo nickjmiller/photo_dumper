@@ -33,9 +33,9 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
           ),
         )
         .then((_) {
-          if (!mounted) return;
-          context.read<PhotoSelectionBloc>().add(LoadPhotos());
-        });
+      if (!mounted) return;
+      context.read<PhotoSelectionBloc>().add(LoadPhotos());
+    });
   }
 
   Widget _buildAddPhotosCenteredButton() {
@@ -163,39 +163,41 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       ),
       floatingActionButton: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
         builder: (context, state) {
-          bool showCompareButton =
-              state is PhotoSelectionLoaded && state.selectedPhotos.length >= 2;
-          bool showAddPhotosButton =
-              state is PhotoSelectionLoaded && state.hasLimitedAccess;
+          if (state is PhotoSelectionLoaded) {
+            final showCompareButton = state.selectedPhotos.length >= 2;
+            final showAddPhotosButton = state.hasLimitedAccess;
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showAddPhotosButton)
-                FloatingActionButton.extended(
-                  onPressed: () async {
-                    await PhotoManager.presentLimited();
-                    context.read<PhotoSelectionBloc>().add(LoadPhotos());
-                  },
-                  label: const Text('Add more photos'),
-                  icon: const Icon(Icons.add_a_photo),
-                  heroTag: 'add_photos',
-                ),
-              if (showCompareButton) ...[
-                const SizedBox(height: 16),
-                FloatingActionButton.extended(
-                  onPressed: () => _startComparison(
-                    (state as PhotoSelectionLoaded).selectedPhotos,
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showAddPhotosButton)
+                  FloatingActionButton.extended(
+                    onPressed: () async {
+                    final bloc = context.read<PhotoSelectionBloc>();
+                      await PhotoManager.presentLimited();
+                      if (mounted) {
+                      bloc.add(LoadPhotos());
+                      }
+                    },
+                    label: const Text('Add more photos'),
+                    icon: const Icon(Icons.add_a_photo),
+                    heroTag: 'add_photos',
                   ),
-                  label: Text(
-                    'Compare (${(state as PhotoSelectionLoaded).selectedPhotos.length})',
+                if (showCompareButton) ...[
+                  const SizedBox(height: 16),
+                  FloatingActionButton.extended(
+                    onPressed: () => _startComparison(state.selectedPhotos),
+                    label: Text(
+                      'Compare (${state.selectedPhotos.length})',
+                    ),
+                    icon: const Icon(Icons.compare_arrows),
+                    heroTag: 'compare',
                   ),
-                  icon: const Icon(Icons.compare_arrows),
-                  heroTag: 'compare',
-                ),
+                ]
               ],
-            ],
-          );
+            );
+          }
+          return const SizedBox.shrink();
         },
       ),
     );

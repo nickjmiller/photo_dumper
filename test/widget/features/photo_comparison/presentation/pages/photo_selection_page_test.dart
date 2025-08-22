@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/photo_selection_bloc.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/photo_selection_page.dart';
