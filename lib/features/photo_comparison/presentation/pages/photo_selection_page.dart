@@ -161,46 +161,61 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
           },
         ),
       ),
-      floatingActionButton:
-          BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
-            builder: (context, state) {
-              if (state is PhotoSelectionLoaded) {
-                final showCompareButton = state.selectedPhotos.length >= 2;
-                final showAddPhotosButton = state.hasLimitedAccess;
+      floatingActionButton: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(
+        builder: (context, state) {
+          if (state is PhotoSelectionLoaded) {
+            final showCompareButton = state.selectedPhotos.length >= 2;
+            final showAddPhotosButton = state.hasLimitedAccess;
 
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (showAddPhotosButton)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: FloatingActionButton.extended(
-                          onPressed: () async {
-                            final bloc = context.read<PhotoSelectionBloc>();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0, right: 16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (showAddPhotosButton)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: FloatingActionButton.extended(
+                        onPressed: () async {
+                          final bloc = context.read<PhotoSelectionBloc>();
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
+                          try {
                             await PhotoManager.presentLimited();
-                            if (mounted) {
-                              bloc.add(LoadPhotos());
-                            }
-                          },
-                          label: const Text('Add more photos'),
-                          icon: const Icon(Icons.add_a_photo),
-                          heroTag: 'add_photos',
-                        ),
+                            if (!mounted) return;
+                            bloc.add(LoadPhotos());
+                          } catch (e) {
+                            if (!mounted) return;
+                            scaffoldMessenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Error presenting limited photo picker: $e',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        label: const Text('Add more photos'),
+                        icon: const Icon(Icons.add_a_photo),
+                        heroTag: 'add_photos',
                       ),
-                    if (showCompareButton)
-                      FloatingActionButton.extended(
-                        onPressed: () => _startComparison(state.selectedPhotos),
-                        label: Text('Compare (${state.selectedPhotos.length})'),
-                        icon: const Icon(Icons.compare_arrows),
-                        heroTag: 'compare',
-                      ),
-                  ],
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                    ),
+                  if (showCompareButton)
+                    FloatingActionButton.extended(
+                      onPressed: () => _startComparison(state.selectedPhotos),
+                      label: Text('Compare (${state.selectedPhotos.length})'),
+                      icon: const Icon(Icons.compare_arrows),
+                      heroTag: 'compare',
+                    ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
   }
 }

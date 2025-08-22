@@ -128,9 +128,10 @@ class PhotoSelectionBloc
   ) async {
     emit(PhotoSelectionLoading());
 
-    final ps = await permissionService.requestPhotoPermission();
-    if (!ps.hasAccess) {
-      emit(PhotoSelectionPermissionError(ps));
+    final permissionState = await permissionService.requestPhotoPermission();
+    if (permissionState != PermissionState.authorized &&
+        permissionState != PermissionState.limited) {
+      emit(PhotoSelectionPermissionError(permissionState));
       return;
     }
 
@@ -155,7 +156,7 @@ class PhotoSelectionBloc
           PhotoSelectionLoaded(
             allPhotos: photos,
             lockedPhotoIds: lockedIds.toSet(),
-            hasLimitedAccess: !ps.isAuth && ps.hasAccess,
+            hasLimitedAccess: permissionState == PermissionState.limited,
           ),
         );
       },
