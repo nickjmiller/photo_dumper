@@ -58,8 +58,6 @@ class SkipPair extends PhotoComparisonEvent {
   List<Object> get props => [photo1, photo2];
 }
 
-class NextPair extends PhotoComparisonEvent {}
-
 class RestartComparison extends PhotoComparisonEvent {}
 
 class ConfirmDeletion extends PhotoComparisonEvent {}
@@ -67,15 +65,6 @@ class ConfirmDeletion extends PhotoComparisonEvent {}
 class CancelComparison extends PhotoComparisonEvent {}
 
 class KeepRemainingPhotos extends PhotoComparisonEvent {}
-
-class ContinueComparing extends PhotoComparisonEvent {
-  final bool dontAskAgain;
-
-  const ContinueComparing({this.dontAskAgain = false});
-
-  @override
-  List<Object> get props => [dontAskAgain];
-}
 
 // States
 abstract class PhotoComparisonState extends Equatable {
@@ -188,14 +177,11 @@ class PhotoComparisonBloc
   List<Photo> _allPhotos = [];
   List<Photo> _remainingPhotos = [];
   List<Photo> _eliminatedPhotos = [];
-  List<List<Photo>> _currentRoundPairs = [];
-  int _currentPairIndex = 0;
+  int _totalComparisons = 0;
   Set<String> _skippedPairs = {};
-  bool _dontAskAgain = false;
 
   String _getPairKey(Photo p1, Photo p2) {
-    final ids = [p1.id, p2.id];
-    ids.sort();
+    final ids = [p1.id, p2.id]..sort();
     return ids.join('-');
   }
 
@@ -213,12 +199,10 @@ class PhotoComparisonBloc
     on<PauseComparison>(_onPauseComparison);
     on<SelectWinner>(_onSelectWinner);
     on<SkipPair>(_onSkipPair);
-    on<NextPair>(_onNextPair);
     on<RestartComparison>(_onRestartComparison);
     on<ConfirmDeletion>(_onConfirmDeletion);
     on<CancelComparison>(_onCancelComparison);
     on<KeepRemainingPhotos>(_onKeepRemainingPhotos);
-    on<ContinueComparing>(_onContinueComparing);
   }
 
   Future<void> _onLoadSelectedPhotos(
@@ -227,15 +211,14 @@ class PhotoComparisonBloc
   ) async {
     emit(PhotoComparisonLoading());
 
-    _sessionId = null; // This is a new session
+    _sessionId = null;
     _allPhotos = List.from(event.photos);
-    _remainingPhotos = List.from(event.photos);
+    _allPhotos.shuffle(_random);
+    _remainingPhotos = List.from(_allPhotos);
     _eliminatedPhotos = [];
-    _currentPairIndex = 0;
+    _totalComparisons = _allPhotos.length - 1;
     _skippedPairs = {};
-    _dontAskAgain = false;
 
-    _generatePairs();
     _emitCurrentState(emit);
   }
 
@@ -245,18 +228,13 @@ class PhotoComparisonBloc
   ) async {
     emit(PhotoComparisonLoading());
 
-    // Restore persisted state
     _sessionId = event.session.id;
     _allPhotos = List.from(event.session.allPhotos);
     _remainingPhotos = List.from(event.session.remainingPhotos);
     _eliminatedPhotos = List.from(event.session.eliminatedPhotos);
-
-    // Reset transient state
+    _totalComparisons = _allPhotos.length - 1;
     _skippedPairs = {};
-    _dontAskAgain = false;
-    _currentPairIndex = 0;
 
-    _generatePairs();
     _emitCurrentState(emit);
   }
 
@@ -269,7 +247,7 @@ class PhotoComparisonBloc
     final session = ComparisonSession(
       id: _sessionId!,
       allPhotos: _allPhotos,
-      remainingPhotos: _remainingPhotos, // This will be calculated on load
+      remainingPhotos: _remainingPhotos,
       eliminatedPhotos: _eliminatedPhotos,
       createdAt: DateTime.now(),
     );
@@ -288,17 +266,10 @@ class PhotoComparisonBloc
     SelectWinner event,
     Emitter<PhotoComparisonState> emit,
   ) async {
-    // Remove both photos from remaining
-    _remainingPhotos.remove(event.winner);
     _remainingPhotos.remove(event.loser);
-
-    // Add winner back to remaining for next round
-    _remainingPhotos.add(event.winner);
-
-    // Add loser to eliminated
     _eliminatedPhotos.add(event.loser);
 
-    _nextPair(emit);
+    _emitCurrentState(emit);
   }
 
   Future<void> _onSkipPair(
@@ -307,38 +278,19 @@ class PhotoComparisonBloc
   ) async {
     final pairKey = _getPairKey(event.photo1, event.photo2);
     _skippedPairs.add(pairKey);
-
-    final n = _remainingPhotos.length;
-    if (n > 1) {
-      final totalPossiblePairs = (n * (n - 1)) / 2;
-      if (!_dontAskAgain && _skippedPairs.length >= totalPossiblePairs) {
-        emit(AllPairsSkipped(remainingPhotos: _remainingPhotos));
-        return;
-      }
-    }
-
-    _nextPair(emit);
-  }
-
-  Future<void> _onNextPair(
-    NextPair event,
-    Emitter<PhotoComparisonState> emit,
-  ) async {
-    _nextPair(emit);
+    _emitCurrentState(emit);
   }
 
   Future<void> _onRestartComparison(
     RestartComparison event,
     Emitter<PhotoComparisonState> emit,
   ) async {
-    _allPhotos = List.from(_allPhotos);
+    _allPhotos.shuffle(_random);
     _remainingPhotos = List.from(_allPhotos);
     _eliminatedPhotos = [];
-    _currentPairIndex = 0;
+    _totalComparisons = _allPhotos.length - 1;
     _skippedPairs = {};
-    _dontAskAgain = false;
 
-    _generatePairs();
     _emitCurrentState(emit);
   }
 
@@ -356,7 +308,6 @@ class PhotoComparisonBloc
 
       bool deletionSucceeded = false;
 
-      // Prefer moving to trash on Android if possible
       if (platformService.isAndroid) {
         try {
           final assetEntities = await Future.wait(
@@ -371,17 +322,14 @@ class PhotoComparisonBloc
             deletionSucceeded = true;
           }
         } catch (e) {
-          // Failed to move to trash, will fallback to permanent delete.
-          // We don't rethrow here, because failure is expected on older Android.
+          // Fallback to permanent delete
         }
       }
 
-      // If not Android, or if moving to trash failed, use permanent deletion.
       if (!deletionSucceeded) {
         await photoManagerService.deleteWithIds(photoIds);
       }
 
-      // After successful photo deletion, delete the session from the database
       if (_sessionId != null) {
         await comparisonUseCases.deleteComparisonSession(_sessionId!);
       }
@@ -402,18 +350,9 @@ class PhotoComparisonBloc
     CancelComparison event,
     Emitter<PhotoComparisonState> emit,
   ) async {
-    // If the session was saved, delete it from the database
     if (_sessionId != null) {
       await comparisonUseCases.deleteComparisonSession(_sessionId!);
     }
-    // Reset all internal state
-    _allPhotos = [];
-    _remainingPhotos = [];
-    _eliminatedPhotos = [];
-    _currentRoundPairs = [];
-    _currentPairIndex = 0;
-
-    // Emit initial state to clear everything
     emit(PhotoComparisonInitial());
   }
 
@@ -429,58 +368,8 @@ class PhotoComparisonBloc
     );
   }
 
-  void _onContinueComparing(
-    ContinueComparing event,
-    Emitter<PhotoComparisonState> emit,
-  ) {
-    _dontAskAgain = event.dontAskAgain;
-    _skippedPairs.clear();
-    _generatePairs();
-    _emitCurrentState(emit);
-  }
-
-  void _generatePairs() {
-    _currentRoundPairs = [];
-    final allPossiblePairs = <List<Photo>>[];
-    for (int i = 0; i < _remainingPhotos.length; i++) {
-      for (int j = i + 1; j < _remainingPhotos.length; j++) {
-        allPossiblePairs.add([_remainingPhotos[i], _remainingPhotos[j]]);
-      }
-    }
-
-    var validPairs = allPossiblePairs.where((pair) {
-      final key = _getPairKey(pair[0], pair[1]);
-      return !_skippedPairs.contains(key);
-    }).toList();
-
-    if (validPairs.isEmpty && _remainingPhotos.length > 1) {
-      if (_dontAskAgain) {
-        // User opted out and has skipped all pairs again.
-        // Reset and let them loop.
-        _skippedPairs.clear();
-        validPairs = allPossiblePairs;
-      }
-    }
-
-    validPairs.shuffle(_random);
-    _currentRoundPairs = validPairs;
-    _currentPairIndex = 0;
-  }
-
-  void _nextPair(Emitter<PhotoComparisonState> emit) {
-    _currentPairIndex++;
-
-    if (_currentPairIndex >= _currentRoundPairs.length) {
-      // Round complete
-      _generatePairs();
-    }
-
-    _emitCurrentState(emit);
-  }
-
   void _emitCurrentState(Emitter<PhotoComparisonState> emit) {
-    // Check if tournament is complete (only one photo remaining)
-    if (_remainingPhotos.length == 1) {
+    if (_remainingPhotos.length < 2) {
       emit(
         DeletionConfirmation(
           eliminatedPhotos: _eliminatedPhotos,
@@ -490,39 +379,33 @@ class PhotoComparisonBloc
       return;
     }
 
-    // Check if we have pairs to compare
-    if (_currentRoundPairs.isEmpty ||
-        _currentPairIndex >= _currentRoundPairs.length) {
-      // If we are here, it means there are no more pairs to compare.
-      // This can happen if all pairs have been skipped.
-      if (_remainingPhotos.length > 1) {
-        emit(AllPairsSkipped(remainingPhotos: _remainingPhotos));
-      } else {
-        // This should be handled by the check for `_remainingPhotos.length == 1`
-        // but as a fallback, we go to the confirmation screen.
-        emit(
-          DeletionConfirmation(
-            eliminatedPhotos: _eliminatedPhotos,
-            winner: _remainingPhotos,
-          ),
-        );
-      }
+    List<Photo>? nextPair = _getNextPair();
+    if (nextPair == null) {
+      emit(AllPairsSkipped(remainingPhotos: _remainingPhotos));
       return;
     }
 
-    final currentPair = _currentRoundPairs[_currentPairIndex];
-    final currentPhoto1 = currentPair[0];
-    final currentPhoto2 = currentPair[1];
-
     emit(
       TournamentInProgress(
-        currentPhoto1: currentPhoto1,
-        currentPhoto2: currentPhoto2,
-        currentComparison: _currentPairIndex + 1,
-        totalComparisons: _currentRoundPairs.length,
+        currentPhoto1: nextPair[0],
+        currentPhoto2: nextPair[1],
+        currentComparison: _eliminatedPhotos.length + 1,
+        totalComparisons: _totalComparisons,
         remainingPhotos: _remainingPhotos,
         eliminatedPhotos: _eliminatedPhotos,
       ),
     );
+  }
+
+  List<Photo>? _getNextPair() {
+    for (int i = 0; i < _remainingPhotos.length; i++) {
+      for (int j = i + 1; j < _remainingPhotos.length; j++) {
+        final pairKey = _getPairKey(_remainingPhotos[i], _remainingPhotos[j]);
+        if (!_skippedPairs.contains(pairKey)) {
+          return [_remainingPhotos[i], _remainingPhotos[j]];
+        }
+      }
+    }
+    return null;
   }
 }
