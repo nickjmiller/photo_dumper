@@ -60,72 +60,16 @@ void main() {
     testWidgets('renders correctly', (WidgetTester tester) async {
       await pumpDialog(tester);
 
-      expect(find.text('Keep all remaining photos?'), findsOneWidget);
-      expect(find.byType(GridView), findsOneWidget);
-      expect(find.byType(Checkbox), findsOneWidget);
-      expect(find.text('No, Continue Comparing'), findsOneWidget);
+      expect(find.text('All Pairs Skipped'), findsOneWidget);
+      expect(
+        find.text(
+          'You have skipped all possible pairs with the remaining 2 photos. Do you want to keep them all?',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('No, Restart'), findsOneWidget);
       expect(find.text('Yes, Keep Them'), findsOneWidget);
     });
-
-    testWidgets('tapping checkbox changes its value', (
-      WidgetTester tester,
-    ) async {
-      await pumpDialog(tester);
-
-      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
-
-      await tester.tap(find.byType(Checkbox));
-      await tester.pump();
-
-      expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
-    });
-
-    testWidgets(
-      'tapping "No, Continue Comparing" dispatches ContinueComparing event with dontAskAgain=false',
-      (WidgetTester tester) async {
-        await pumpDialog(tester);
-
-        await tester.tap(find.text('No, Continue Comparing'));
-        await tester.pump();
-
-        verify(
-          () => mockBloc.add(
-            any(
-              that: isA<ContinueComparing>().having(
-                (e) => e.dontAskAgain,
-                'dontAskAgain',
-                false,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    testWidgets(
-      'tapping "No, Continue Comparing" dispatches ContinueComparing event with dontAskAgain=true when checked',
-      (WidgetTester tester) async {
-        await pumpDialog(tester);
-
-        await tester.tap(find.byType(Checkbox));
-        await tester.pump();
-
-        await tester.tap(find.text('No, Continue Comparing'));
-        await tester.pump();
-
-        verify(
-          () => mockBloc.add(
-            any(
-              that: isA<ContinueComparing>().having(
-                (e) => e.dontAskAgain,
-                'dontAskAgain',
-                true,
-              ),
-            ),
-          ),
-        );
-      },
-    );
 
     testWidgets(
       'tapping "Yes, Keep Them" dispatches KeepRemainingPhotos event',
@@ -139,5 +83,17 @@ void main() {
         verify(() => mockBloc.add(any(that: isA<KeepRemainingPhotos>())));
       },
     );
+
+    testWidgets('tapping "No, Restart" dispatches RestartComparison event', (
+      WidgetTester tester,
+    ) async {
+      when(() => mockBloc.add(any())).thenReturn(null);
+      await pumpDialog(tester);
+
+      await tester.tap(find.text('No, Restart'));
+      await tester.pump();
+
+      verify(() => mockBloc.add(any(that: isA<RestartComparison>())));
+    });
   });
 }

@@ -5,6 +5,8 @@ import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dar
 // ignore: unused_import
 import 'package:dartz/dartz.dart';
 import 'package:photo_dumper/core/error/failures.dart';
+import 'package:photo_dumper/core/error/exceptions.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   @override
@@ -26,8 +28,8 @@ class MockPhotoLibraryDataSource implements PhotoLibraryDataSource {
   }
 
   @override
-  Future<bool> requestPhotoPermission() async {
-    return true;
+  Future<PermissionState> requestPhotoPermission() async {
+    return PermissionState.authorized;
   }
 
   @override
@@ -43,8 +45,8 @@ class MockPhotoLibraryDataSourceEmpty implements PhotoLibraryDataSource {
   }
 
   @override
-  Future<bool> requestPhotoPermission() async {
-    return true;
+  Future<PermissionState> requestPhotoPermission() async {
+    return PermissionState.authorized;
   }
 
   @override
@@ -61,13 +63,31 @@ class MockPhotoLibraryDataSourceThrowsException
   }
 
   @override
-  Future<bool> requestPhotoPermission() async {
-    return true;
+  Future<PermissionState> requestPhotoPermission() async {
+    return PermissionState.authorized;
   }
 
   @override
   Future<List<Photo>> getPhotosByIds(List<String> ids) async {
     throw Exception('Test Exception');
+  }
+}
+
+class MockPhotoLibraryDataSourcePermissionDenied
+    implements PhotoLibraryDataSource {
+  @override
+  Future<List<Photo>> getPhotosFromGallery() async {
+    throw PhotoPermissionException(PermissionState.denied);
+  }
+
+  @override
+  Future<PermissionState> requestPhotoPermission() async {
+    return PermissionState.denied;
+  }
+
+  @override
+  Future<List<Photo>> getPhotosByIds(List<String> ids) async {
+    return [];
   }
 }
 
@@ -77,11 +97,15 @@ void main() {
     late MockPhotoLibraryDataSource mockDataSource;
     late MockPhotoLibraryDataSourceEmpty mockDataSourceEmpty;
     late MockPhotoLibraryDataSourceThrowsException mockDataSourceThrows;
+    late MockPhotoLibraryDataSourcePermissionDenied
+    mockDataSourcePermissionDenied;
 
     setUp(() {
       mockDataSource = MockPhotoLibraryDataSource();
       mockDataSourceEmpty = MockPhotoLibraryDataSourceEmpty();
       mockDataSourceThrows = MockPhotoLibraryDataSourceThrowsException();
+      mockDataSourcePermissionDenied =
+          MockPhotoLibraryDataSourcePermissionDenied();
     });
 
     test(
@@ -136,6 +160,26 @@ void main() {
         expect(result.isLeft(), true);
         result.fold(
           (failure) => expect(failure, isA<ServerFailure>()),
+          (photos) => fail('should not return photos'),
+        );
+      },
+    );
+
+    test(
+      'should return a PhotoPermissionFailure when data source throws a PhotoPermissionException',
+      () async {
+        // Arrange
+        repository = PhotoRepositoryImpl(
+          photoLibraryDataSource: mockDataSourcePermissionDenied,
+        );
+
+        // Act
+        final result = await repository.getPhotosFromGallery();
+
+        // Assert
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<PhotoPermissionFailure>()),
           (photos) => fail('should not return photos'),
         );
       },

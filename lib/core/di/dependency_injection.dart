@@ -9,6 +9,7 @@ import '../../features/photo_comparison/data/repositories/photo_repository_impl.
 import '../../features/photo_comparison/data/datasources/photo_library_datasource.dart';
 import '../../features/photo_comparison/domain/repositories/photo_repository.dart';
 import '../../features/photo_comparison/domain/usecases/photo_usecases.dart';
+import '../services/permission_service.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -41,4 +42,5 @@ Future<void> setupDependencies() async {
 
   // Core
   getIt.registerLazySingleton(() => DatabaseHelper.instance);
+  getIt.registerLazySingleton(() => PermissionService());
 }

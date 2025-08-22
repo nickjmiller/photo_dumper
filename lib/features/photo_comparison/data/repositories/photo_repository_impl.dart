@@ -3,6 +3,7 @@ import '../../domain/entities/photo.dart';
 import '../../domain/repositories/photo_repository.dart';
 import '../../../../core/error/failures.dart';
 import '../datasources/photo_library_datasource.dart';
+import '../../../../core/error/exceptions.dart';
 
 class PhotoRepositoryImpl implements PhotoRepository {
   final PhotoLibraryDataSource _photoLibraryDataSource;
@@ -16,6 +17,13 @@ class PhotoRepositoryImpl implements PhotoRepository {
     try {
       final photos = await _photoLibraryDataSource.getPhotosFromGallery();
       return Right(photos);
+    } on PhotoPermissionException catch (e) {
+      return Left(
+        PhotoPermissionFailure(
+          e.permissionState,
+          'Photo library permission not granted.',
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure('Failed to fetch photos from gallery: $e'));
     }

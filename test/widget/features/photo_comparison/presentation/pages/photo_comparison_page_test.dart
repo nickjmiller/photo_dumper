@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:bloc_test/bloc_test.dart';
 import 'package:photo_dumper/features/photo_comparison/data/repositories/photo_repository_impl.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/entities/photo.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
@@ -15,6 +16,10 @@ class MockPhotoUseCases extends Mock implements PhotoUseCases {}
 class MockComparisonUseCases extends Mock implements ComparisonUseCases {}
 
 class MockPhotoRepositoryImpl extends Mock implements PhotoRepositoryImpl {}
+
+class MockPhotoComparisonBloc
+    extends MockBloc<PhotoComparisonEvent, PhotoComparisonState>
+    implements PhotoComparisonBloc {}
 
 Photo createMockPhoto({String? id, String? imagePath}) {
   return Photo(

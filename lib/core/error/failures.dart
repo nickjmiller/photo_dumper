@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:photo_manager/photo_manager.dart';
 
 abstract class Failure extends Equatable {
   final String message;
@@ -23,4 +24,13 @@ class NetworkFailure extends Failure {
 
 class PhotoOperationFailure extends Failure {
   const PhotoOperationFailure(super.message);
+}
+
+class PhotoPermissionFailure extends Failure {
+  final PermissionState permissionState;
+
+  const PhotoPermissionFailure(this.permissionState, super.message);
+
+  @override
+  List<Object> get props => [permissionState, message];
 }

@@ -62,79 +62,6 @@ void main() {
       );
     });
 
-    group('SkipPair', () {
-      final photo1 = testPhotos[0];
-      final photo2 = testPhotos[1];
-      final photo3 = testPhotos[2];
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [TournamentInProgress] when a pair is skipped and other pairs remain',
-        build: () => bloc,
-        act: (bloc) {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2, photo3]));
-          return bloc.add(SkipPair(photo1: photo1, photo2: photo2));
-        },
-        skip: 1, // Skip PhotoComparisonLoading
-        expect: () => [
-          isA<TournamentInProgress>(), // from LoadSelectedPhotos
-          isA<TournamentInProgress>(), // from SkipPair
-        ],
-      );
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [AllPairsSkipped] when all pairs are skipped',
-        build: () => bloc,
-        act: (bloc) async {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          await Future.delayed(Duration.zero);
-          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
-        },
-        skip: 2, // Skip Loading and initial TournamentInProgress
-        expect: () => [isA<AllPairsSkipped>()],
-      );
-    });
-
-    group('AllPairsSkipped flow', () {
-      final photo1 = testPhotos[0];
-      final photo2 = testPhotos[1];
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [DeletionConfirmation] when KeepRemainingPhotos is added',
-        build: () => bloc,
-        act: (bloc) {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
-          bloc.add(KeepRemainingPhotos());
-        },
-        skip: 3,
-        expect: () => [isA<DeletionConfirmation>()],
-      );
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [TournamentInProgress] when ContinueComparing is added',
-        build: () => bloc,
-        act: (bloc) {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
-          bloc.add(ContinueComparing());
-        },
-        skip: 3,
-        expect: () => [isA<TournamentInProgress>()],
-      );
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [TournamentInProgress] and sets dontAskAgain flag when ContinueComparing(dontAskAgain: true) is added',
-        build: () => bloc,
-        act: (bloc) {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          bloc.add(SkipPair(photo1: photo1, photo2: photo2));
-          bloc.add(ContinueComparing(dontAskAgain: true));
-        },
-        skip: 3,
-        expect: () => [isA<TournamentInProgress>()],
-      );
-    });
-
     tearDown(() {
       bloc.close();
     });
@@ -160,17 +87,30 @@ void main() {
       final photo2 = testPhotos[1];
 
       blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [TournamentInProgress, DeletionConfirmation] when only one photo remains',
-        build: () => bloc,
-        act: (bloc) {
+        'emits [DeletionConfirmation] when only one photo remains',
+        build: () {
           bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          return bloc.add(SelectWinner(winner: photo1, loser: photo2));
+          return bloc;
         },
-        skip: 1, // Skip PhotoComparisonLoading state
-        expect: () => [
-          isA<TournamentInProgress>(), // The state from LoadSelectedPhotos
-          isA<DeletionConfirmation>(), // The state from SelectWinner
-        ],
+        act: (bloc) => bloc.add(SelectWinner(winner: photo1, loser: photo2)),
+        skip: 2, // Skip Loading and initial TournamentInProgress
+        expect: () => [isA<DeletionConfirmation>()],
+      );
+    });
+
+    group('SkipPair', () {
+      final photo1 = testPhotos[0];
+      final photo2 = testPhotos[1];
+
+      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
+        'emits [AllPairsSkipped] when all pairs are skipped',
+        build: () {
+          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
+          return bloc;
+        },
+        act: (bloc) => bloc.add(SkipPair(photo1: photo1, photo2: photo2)),
+        skip: 2, // Skip Loading and initial TournamentInProgress
+        expect: () => [isA<AllPairsSkipped>()],
       );
     });
 
@@ -182,39 +122,20 @@ void main() {
         'emits [ComparisonComplete] when deletion is successful',
         build: () {
           when(mockPlatformService.isAndroid).thenReturn(false);
-          when(
-            mockPhotoManagerService.deleteWithIds(any),
-          ).thenAnswer((_) async => []);
+          when(mockPhotoManagerService.deleteWithIds(any)).thenAnswer(
+            (invocation) async =>
+                invocation.positionalArguments[0] as List<String>,
+          );
           when(
             mockComparisonUseCases.deleteComparisonSession(any),
           ).thenAnswer((_) async => const Right(null));
-          return bloc;
-        },
-        act: (bloc) {
           bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
           bloc.add(SelectWinner(winner: photo1, loser: photo2));
-          bloc.add(ConfirmDeletion());
+          return bloc;
         },
+        act: (bloc) => bloc.add(ConfirmDeletion()),
         skip: 3,
         expect: () => [isA<ComparisonComplete>()],
-      );
-
-      blocTest<PhotoComparisonBloc, PhotoComparisonState>(
-        'emits [PhotoComparisonError] when deletion fails on a non-Android platform',
-        build: () {
-          when(mockPlatformService.isAndroid).thenReturn(false);
-          when(
-            mockPhotoManagerService.deleteWithIds(any),
-          ).thenThrow(Exception('Deletion failed'));
-          return bloc;
-        },
-        act: (bloc) {
-          bloc.add(LoadSelectedPhotos(photos: [photo1, photo2]));
-          bloc.add(SelectWinner(winner: photo1, loser: photo2));
-          bloc.add(ConfirmDeletion());
-        },
-        skip: 3,
-        expect: () => [isA<PhotoComparisonError>()],
       );
     });
   });

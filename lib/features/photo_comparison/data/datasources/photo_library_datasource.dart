@@ -1,10 +1,11 @@
 import 'package:photo_manager/photo_manager.dart';
 import '../../domain/entities/photo.dart';
+import '../../../../core/error/exceptions.dart';
 
 abstract class PhotoLibraryDataSource {
   Future<List<Photo>> getPhotosFromGallery();
   Future<List<Photo>> getPhotosByIds(List<String> ids);
-  Future<bool> requestPhotoPermission();
+  Future<PermissionState> requestPhotoPermission();
 }
 
 class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
@@ -37,17 +38,16 @@ class PhotoLibraryDataSourceImpl implements PhotoLibraryDataSource {
   }
 
   @override
-  Future<bool> requestPhotoPermission() async {
-    final ps = await PhotoManager.requestPermissionExtend();
-    return ps.isAuth;
+  Future<PermissionState> requestPhotoPermission() async {
+    return await PhotoManager.requestPermissionExtend();
   }
 
   @override
   Future<List<Photo>> getPhotosFromGallery() async {
     try {
-      final hasPermission = await requestPhotoPermission();
-      if (!hasPermission) {
-        throw Exception('Photo library permission not granted');
+      final permissionState = await requestPhotoPermission();
+      if (!permissionState.hasAccess) {
+        throw PhotoPermissionException(permissionState);
       }
 
       final List<AssetPathEntity> paths = await PhotoManager.getAssetPathList(
