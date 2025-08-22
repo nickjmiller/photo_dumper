@@ -229,20 +229,8 @@ class _PhotoComparisonPageState extends State<PhotoComparisonPage>
     // Clear all photo state from memory
     context.read<PhotoComparisonBloc>().add(CancelComparison());
 
-    // Navigate back to photo selection page and clear all routes
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => BlocProvider(
-          create: (context) => PhotoSelectionBloc(
-            photoUseCases: getIt(),
-            comparisonUseCases: getIt(),
-            permissionService: getIt(),
-          ),
-          child: const PhotoSelectionPage(),
-        ),
-      ),
-      (route) => false,
-    );
+    // Navigate back to the home page and clear all routes
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   Future<void> _showExitDialog() async {
