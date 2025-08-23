@@ -16,6 +16,7 @@ import 'package:photo_dumper/features/photo_comparison/domain/services/photo_man
 import 'package:photo_dumper/features/photo_comparison/presentation/bloc/comparison_list_bloc.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/pages/comparison_list_page.dart';
 import 'package:photo_dumper/features/photo_comparison/presentation/widgets/photo_card.dart';
+import 'package:photo_dumper/features/photo_comparison/domain/entities/comparison_session.dart';
 import 'package:photo_dumper/features/photo_comparison/domain/usecases/comparison_usecases.dart';
 import 'package:photo_dumper/core/services/permission_service.dart';
 import 'package:photo_manager/photo_manager.dart';
@@ -176,4 +177,153 @@ void main() {
     final capturedIds = verificationResult.captured.single as List<String>;
     expect(capturedIds.length, 2);
   });
+
+  testWidgets('Discarding a comparison navigates back to the home page', (
+    WidgetTester tester,
+  ) async {
+    // Stub getComparisonSessions for this test to ensure a clean slate
+    when(
+      mockComparisonUseCases.getComparisonSessions(),
+    ).thenAnswer((_) async => const Right([]));
+    when(
+      mockPermissionService.requestPhotoPermission(),
+    ).thenAnswer((_) async => PermissionState.authorized);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<PhotoSelectionBloc>(
+            create: (_) => PhotoSelectionBloc(
+              photoUseCases: mockPhotoUseCases,
+              comparisonUseCases: mockComparisonUseCases,
+              permissionService: mockPermissionService,
+            ),
+          ),
+          BlocProvider<PhotoComparisonBloc>(
+            create: (_) => PhotoComparisonBloc(
+              photoUseCases: mockPhotoUseCases,
+              comparisonUseCases: mockComparisonUseCases,
+              photoManagerService: mockPhotoManagerService,
+              platformService: mockPlatformService,
+            ),
+          ),
+          BlocProvider<ComparisonListBloc>(
+            create: (_) =>
+                ComparisonListBloc(useCases: mockComparisonUseCases)
+                  ..add(LoadComparisonSessions()),
+          ),
+        ],
+        child: const MaterialApp(home: ComparisonListPage()),
+      ),
+    );
+
+    // 1. Start on the ComparisonListPage
+    await tester.pumpAndSettle();
+    expect(find.byType(ComparisonListPage), findsOneWidget);
+
+    // 2. Tap the 'New Comparison' FAB to navigate to PhotoSelectionPage
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    expect(find.byType(PhotoSelectionPage), findsOneWidget);
+
+    // 3. Wait for photos to load
+    await tester.pumpAndSettle();
+    expect(find.byType(GridView), findsOneWidget);
+
+    // 4. Select 2 photos
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_0')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('photo_thumbnail_id_1')));
+    await tester.pump();
+
+    // 5. Start comparison
+    await tester.tap(find.text('Compare (2)'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PhotoComparisonPage), findsOneWidget);
+
+    // 6. Tap the close button to show the exit dialog
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    // 7. Tap the 'Discard' button
+    await tester.tap(find.text('Discard'));
+    await tester.pumpAndSettle();
+
+    // 8. Verify that we are back on the ComparisonListPage
+    expect(find.byType(ComparisonListPage), findsOneWidget);
+    expect(find.text('No saved comparisons. Start a new one!'), findsOneWidget);
+
+    // 9. Verify that the PhotoComparisonPage is gone
+    expect(find.byType(PhotoComparisonPage), findsNothing);
+  });
+
+  testWidgets(
+    'Navigating back to home page reloads and displays saved sessions',
+    (WidgetTester tester) async {
+      final mockSession = ComparisonSession(
+        id: 'session_1',
+        createdAt: DateTime.now(),
+        allPhotos: testPhotos,
+        remainingPhotos: testPhotos.sublist(0, 2),
+        eliminatedPhotos: [testPhotos.last],
+      );
+      // 1. Mock a saved session
+      when(
+        mockComparisonUseCases.getComparisonSessions(),
+      ).thenAnswer((_) async => Right([mockSession]));
+
+      when(
+        mockPermissionService.requestPhotoPermission(),
+      ).thenAnswer((_) async => PermissionState.authorized);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<PhotoSelectionBloc>(
+              create: (_) => PhotoSelectionBloc(
+                photoUseCases: mockPhotoUseCases,
+                comparisonUseCases: mockComparisonUseCases,
+                permissionService: mockPermissionService,
+              ),
+            ),
+            BlocProvider<PhotoComparisonBloc>(
+              create: (_) => PhotoComparisonBloc(
+                photoUseCases: mockPhotoUseCases,
+                comparisonUseCases: mockComparisonUseCases,
+                photoManagerService: mockPhotoManagerService,
+                platformService: mockPlatformService,
+              ),
+            ),
+            BlocProvider<ComparisonListBloc>(
+              create: (_) =>
+                  ComparisonListBloc(useCases: mockComparisonUseCases),
+            ),
+          ],
+          child: const MaterialApp(home: ComparisonListPage()),
+        ),
+      );
+
+      // 2. Start on ComparisonListPage and verify session is there
+      await tester.pumpAndSettle();
+      expect(find.byType(ComparisonListPage), findsOneWidget);
+      expect(find.textContaining('Collection from'), findsOneWidget);
+
+      // 3. Navigate to PhotoSelectionPage
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      expect(find.byType(PhotoSelectionPage), findsOneWidget);
+
+      // 4. Simulate navigating back to home page via back button
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      // 5. Verify we are back on ComparisonListPage and session is still there
+      expect(find.byType(ComparisonListPage), findsOneWidget);
+      expect(find.textContaining('Collection from'), findsOneWidget);
+
+      // 6. Verify getComparisonSessions was called again
+      verify(mockComparisonUseCases.getComparisonSessions()).called(2);
+    },
+  );
 }
