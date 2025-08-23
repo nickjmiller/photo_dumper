@@ -73,8 +73,9 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () =>
-              Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false),
+          onPressed: () => Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/', (route) => false),
         ),
         title: const Text('Select Photos'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,

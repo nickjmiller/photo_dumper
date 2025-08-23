@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/di/dependency_injection.dart';
 import '../bloc/photo_comparison_bloc.dart';
-import '../bloc/photo_selection_bloc.dart';
 import '../widgets/all_pairs_skipped_dialog.dart';
 import '../widgets/photo_card.dart';
 import '../../domain/entities/comparison_session.dart';
 import '../../domain/entities/photo.dart';
-import 'photo_selection_page.dart';
 
 class PhotoComparisonPage extends StatefulWidget {
   static const routeName = '/photo-comparison';

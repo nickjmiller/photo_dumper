@@ -17,6 +17,13 @@ class ComparisonListPage extends StatefulWidget {
 class _ComparisonListPageState extends State<ComparisonListPage>
     with RouteAware {
   @override
+  void initState() {
+    super.initState();
+    // Load sessions when the page is first created
+    context.read<ComparisonListBloc>().add(LoadComparisonSessions());
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     routeObserver.subscribe(this, ModalRoute.of(context)!);
