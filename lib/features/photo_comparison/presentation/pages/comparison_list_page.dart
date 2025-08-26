@@ -66,9 +66,9 @@ class _ComparisonListPageState extends State<ComparisonListPage>
                 return Dismissible(
                   key: Key(session.id),
                   onDismissed: (direction) {
-                    context
-                        .read<ComparisonListBloc>()
-                        .add(DeleteComparisonSession(session));
+                    context.read<ComparisonListBloc>().add(
+                      DeleteComparisonSession(session),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -77,9 +77,9 @@ class _ComparisonListPageState extends State<ComparisonListPage>
                         action: SnackBarAction(
                           label: 'Undo',
                           onPressed: () {
-                            context
-                                .read<ComparisonListBloc>()
-                                .add(UndoDeleteComparisonSession());
+                            context.read<ComparisonListBloc>().add(
+                              UndoDeleteComparisonSession(),
+                            );
                           },
                         ),
                       ),

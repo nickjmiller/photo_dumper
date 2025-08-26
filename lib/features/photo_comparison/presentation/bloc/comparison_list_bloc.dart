@@ -38,8 +38,10 @@ class ComparisonListLoaded extends ComparisonListState {
   final ComparisonSession? lastDeletedSession;
   const ComparisonListLoaded(this.sessions, {this.lastDeletedSession});
   @override
-  List<Object> get props =>
-      [sessions, if (lastDeletedSession != null) lastDeletedSession!];
+  List<Object> get props => [
+    sessions,
+    if (lastDeletedSession != null) lastDeletedSession!,
+  ];
 
   ComparisonListLoaded copyWith({
     List<ComparisonSession>? sessions,
@@ -64,7 +66,8 @@ class ComparisonListBloc
     extends Bloc<ComparisonListEvent, ComparisonListState> {
   final ComparisonUseCases useCases;
 
-  ComparisonListBloc({required this.useCases}) : super(ComparisonListInitial()) {
+  ComparisonListBloc({required this.useCases})
+    : super(ComparisonListInitial()) {
     on<LoadComparisonSessions>(_onLoadComparisonSessions);
     on<DeleteComparisonSession>(_onDeleteComparisonSession);
     on<UndoDeleteComparisonSession>(_onUndoDeleteComparisonSession);
@@ -96,8 +99,9 @@ class ComparisonListBloc
   ) async {
     if (state is ComparisonListLoaded) {
       final currentState = state as ComparisonListLoaded;
-      final failureOrVoid =
-          await useCases.deleteComparisonSession(event.session.id);
+      final failureOrVoid = await useCases.deleteComparisonSession(
+        event.session.id,
+      );
       if (failureOrVoid.isRight()) {
         final updatedSessions = List<ComparisonSession>.from(
           currentState.sessions,
@@ -121,15 +125,20 @@ class ComparisonListBloc
       final currentState = state as ComparisonListLoaded;
       if (currentState.lastDeletedSession != null) {
         final sessionToRestore = currentState.lastDeletedSession!;
-        final failureOrVoid =
-            await useCases.saveComparisonSession(sessionToRestore);
+        final failureOrVoid = await useCases.saveComparisonSession(
+          sessionToRestore,
+        );
         if (failureOrVoid.isRight()) {
-          final updatedSessions =
-              List<ComparisonSession>.from(currentState.sessions)
-                ..add(sessionToRestore);
-          final modifiableSessions = List<ComparisonSession>.from(updatedSessions);
+          final updatedSessions = List<ComparisonSession>.from(
+            currentState.sessions,
+          )..add(sessionToRestore);
+          final modifiableSessions = List<ComparisonSession>.from(
+            updatedSessions,
+          );
           modifiableSessions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          emit(ComparisonListLoaded(modifiableSessions, lastDeletedSession: null));
+          emit(
+            ComparisonListLoaded(modifiableSessions, lastDeletedSession: null),
+          );
         }
         // Optionally handle the failure case
       }
