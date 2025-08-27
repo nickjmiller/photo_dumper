@@ -79,22 +79,56 @@ class _PhotoSelectionPageState extends State<PhotoSelectionPage> {
         ),
         title: const Text('Select Photos'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_outlined),
+            tooltip: 'Find similar photos',
+            onPressed: () {
+              context.read<PhotoSelectionBloc>().add(FindSimilarPhotos());
+            },
+          ),
+        ],
       ),
       body: BlocListener<PhotoSelectionBloc, PhotoSelectionState>(
         listener: (context, state) {
-          if (state is PhotoSelectionError) {
+          if (state is FindingSimilarPhotos) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const PopScope(
+                canPop: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
+          } else if (state is FindSimilarPhotosSuccess) {
+            Navigator.of(
+              context,
+              rootNavigator: true,
+            ).pop(); // Dismiss the dialog
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${state.comparisonCount} comparisons created.'),
+                action: SnackBarAction(
+                  label: 'View',
+                  onPressed: () {
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/', (route) => false);
+                  },
+                ),
+              ),
+            );
+          } else if (state is PhotoSelectionError) {
+            Navigator.of(
+              context,
+              rootNavigator: true,
+            ).pop(); // Dismiss the dialog
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
-            // Reset to initial state after showing error
-            Future.delayed(const Duration(milliseconds: 100), () {
-              if (context.mounted) {
-                context.read<PhotoSelectionBloc>().add(ResetSelection());
-              }
-            });
           }
         },
         child: BlocBuilder<PhotoSelectionBloc, PhotoSelectionState>(

@@ -1,11 +1,15 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/photo.dart';
 import '../../domain/usecases/comparison_usecases.dart';
 import '../../domain/usecases/photo_usecases.dart';
 import '../../../../core/services/permission_service.dart';
+import '../../domain/entities/comparison_session.dart';
+import '../../domain/services/photo_clustering_service.dart';
+import '../../domain/services/image_hashing_service.dart';
 
 // Events
 abstract class PhotoSelectionEvent extends Equatable {
@@ -29,6 +33,8 @@ class TogglePhotoSelection extends PhotoSelectionEvent {
 class StartComparison extends PhotoSelectionEvent {}
 
 class ResetSelection extends PhotoSelectionEvent {}
+
+class FindSimilarPhotos extends PhotoSelectionEvent {}
 
 // States
 abstract class PhotoSelectionState extends Equatable {
@@ -105,6 +111,17 @@ class PhotoSelectionPermissionError extends PhotoSelectionState {
   List<Object> get props => [permissionState];
 }
 
+class FindingSimilarPhotos extends PhotoSelectionState {}
+
+class FindSimilarPhotosSuccess extends PhotoSelectionState {
+  final int comparisonCount;
+
+  const FindSimilarPhotosSuccess(this.comparisonCount);
+
+  @override
+  List<Object> get props => [comparisonCount];
+}
+
 class PhotoSelectionBloc
     extends Bloc<PhotoSelectionEvent, PhotoSelectionState> {
   final PhotoUseCases photoUseCases;
@@ -120,6 +137,58 @@ class PhotoSelectionBloc
     on<TogglePhotoSelection>(_onTogglePhotoSelection);
     on<StartComparison>(_onStartComparison);
     on<ResetSelection>(_onResetSelection);
+    on<FindSimilarPhotos>(_onFindSimilarPhotos);
+  }
+
+  Future<void> _onFindSimilarPhotos(
+    FindSimilarPhotos event,
+    Emitter<PhotoSelectionState> emit,
+  ) async {
+    if (state is! PhotoSelectionLoaded) return;
+
+    final currentState = state as PhotoSelectionLoaded;
+    emit(FindingSimilarPhotos());
+
+    try {
+      final clusteringService = PhotoClusteringService(
+        imageHashingService: ImageHashingService(),
+      );
+      final clusters = await clusteringService.findClusters(
+        currentState.allPhotos,
+      );
+
+      if (clusters.isEmpty) {
+        emit(const FindSimilarPhotosSuccess(0));
+        // Restore the previous state
+        emit(currentState);
+        return;
+      }
+
+      int createdCount = 0;
+      for (final cluster in clusters) {
+        if (cluster.length < 2) continue;
+
+        final session = ComparisonSession(
+          id: const Uuid().v4(),
+          allPhotos: cluster,
+          remainingPhotos: cluster,
+          eliminatedPhotos: [],
+          createdAt: DateTime.now(),
+        );
+
+        final result = await comparisonUseCases.saveComparisonSession(session);
+        result.fold(
+          (l) => null, // Silently ignore failed saves for now
+          (r) => createdCount++,
+        );
+      }
+
+      emit(FindSimilarPhotosSuccess(createdCount));
+      // Restore the previous state
+      emit(currentState);
+    } catch (e) {
+      emit(PhotoSelectionError(e.toString()));
+    }
   }
 
   Future<void> _onLoadPhotos(
